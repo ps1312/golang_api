@@ -1,22 +1,25 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 )
 
-func FoodServer(w http.ResponseWriter, req *http.Request) {
-	fmt.Fprint(w, "[]")
+type EmptyFoodsStoreSpy struct {
+}
+
+func (f *EmptyFoodsStoreSpy) GetFoods() string {
+	return "[]"
 }
 
 func TestGetFoods(t *testing.T) {
-	t.Run("returns empty list", func(t *testing.T) {
+	t.Run("returns empty list on empty store", func(t *testing.T) {
+		server := &FoodsServer{store: &EmptyFoodsStoreSpy{}}
 		request, _ := http.NewRequest(http.MethodGet, "/foods", nil)
 		response := httptest.NewRecorder()
 
-		FoodServer(response, request)
+		server.ServeHTTP(response, request)
 
 		got := response.Body.String()
 		want := "[]"
