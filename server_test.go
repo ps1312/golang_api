@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -31,15 +32,8 @@ func TestGetFoods(t *testing.T) {
 
 		server.ServeHTTP(response, makeGetFoodsRequest())
 
-		var got []Food
-		err := json.NewDecoder(response.Body).Decode(&got)
-
-		if err != nil {
-			t.Fatalf("Unable to decode: error %q", err)
-		}
-
 		assertStatus(t, response.Code, http.StatusOK)
-		assertResponseBody(t, got, wantedFoods)
+		assertJSONBody(t, response.Body, wantedFoods)
 	})
 
 	t.Run("returns single Food in store", func(t *testing.T) {
@@ -49,17 +43,9 @@ func TestGetFoods(t *testing.T) {
 
 		server.ServeHTTP(response, makeGetFoodsRequest())
 
-		var got []Food
-		err := json.NewDecoder(response.Body).Decode(&got)
-
-		if err != nil {
-			t.Fatalf("Unable to decode: error %q", err)
-		}
-
 		assertStatus(t, response.Code, http.StatusOK)
-		assertResponseBody(t, got, wantedFoods)
+		assertJSONBody(t, response.Body, wantedFoods)
 	})
-
 }
 
 func assertStatus(t *testing.T, got int, want int) {
@@ -69,8 +55,16 @@ func assertStatus(t *testing.T, got int, want int) {
 	}
 }
 
-func assertResponseBody(t *testing.T, got []Food, want []Food) {
+func assertJSONBody(t *testing.T, body *bytes.Buffer, want []Food) {
 	t.Helper()
+
+	var got []Food
+	err := json.NewDecoder(body).Decode(&got)
+
+	if err != nil {
+		t.Fatalf("Unable to decode: error %q", err)
+	}
+
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %q, want %q", got, want)
 	}
