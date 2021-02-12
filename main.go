@@ -5,9 +5,15 @@ import (
 	"net/http"
 )
 
+// Food struct type
+type Food struct {
+	name     string
+	calories int
+}
+
 // FoodsStore interface for Food storage operations
 type FoodsStore interface {
-	GetFoods() string
+	GetFoods() []Food
 }
 
 // FoodsServer struct to use FoodsStore
