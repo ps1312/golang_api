@@ -27,6 +27,8 @@ func TestGetFoods(t *testing.T) {
 		got := response.Body.String()
 		want := "[]"
 
+		assertStatus(t, response.Code, http.StatusOK)
+
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("got %q, want %q", got, want)
 		}
@@ -43,8 +45,17 @@ func TestGetFoods(t *testing.T) {
 		got := response.Body.String()
 		want := "[{food 1 300}]"
 
+		assertStatus(t, response.Code, http.StatusOK)
+
 		if !reflect.DeepEqual(got, want) {
 			t.Errorf("got %q, want %q", got, want)
 		}
 	})
+}
+
+func assertStatus(t *testing.T, got int, want int) {
+	t.Helper()
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
 }
