@@ -16,46 +16,48 @@ func (f *FoodsStoreSpy) GetFoods() []Food {
 }
 
 func TestGetFoods(t *testing.T) {
-	t.Run("returns empty list on empty store", func(t *testing.T) {
-		foods := []Food{}
-		server := &FoodsServer{store: &FoodsStoreSpy{foods}}
+	server := &FoodsServer{}
+
+	makeGetFoodsRequest := func() *http.Request {
 		request, _ := http.NewRequest(http.MethodGet, "/foods", nil)
-		response := httptest.NewRecorder()
+		return request
+	}
+	makeResponseRecorder := func() *httptest.ResponseRecorder {
+		return httptest.NewRecorder()
+	}
 
-		server.ServeHTTP(response, request)
+	t.Run("returns empty list on empty store", func(t *testing.T) {
+		server.store = &FoodsStoreSpy{[]Food{}}
+		response := makeResponseRecorder()
 
-		got := response.Body.String()
-		want := "[]"
+		server.ServeHTTP(response, makeGetFoodsRequest())
 
 		assertStatus(t, response.Code, http.StatusOK)
-
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("got %q, want %q", got, want)
-		}
+		assertResponseBody(t, response.Body.String(), "[]")
 	})
 
 	t.Run("returns array of one item on single Food in store", func(t *testing.T) {
-		foods := []Food{{name: "food 1", calories: 300}}
-		server := FoodsServer{store: &FoodsStoreSpy{foods}}
-		request, _ := http.NewRequest(http.MethodGet, "/foods", nil)
-		response := httptest.NewRecorder()
+		server.store = &FoodsStoreSpy{[]Food{{name: "food 1", calories: 300}}}
+		response := makeResponseRecorder()
 
-		server.ServeHTTP(response, request)
-
-		got := response.Body.String()
-		want := "[{food 1 300}]"
+		server.ServeHTTP(response, makeGetFoodsRequest())
 
 		assertStatus(t, response.Code, http.StatusOK)
-
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("got %q, want %q", got, want)
-		}
+		assertResponseBody(t, response.Body.String(), "[{food 1 300}]")
 	})
+
 }
 
 func assertStatus(t *testing.T, got int, want int) {
 	t.Helper()
 	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func assertResponseBody(t *testing.T, got string, want string) {
+	t.Helper()
+	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %q, want %q", got, want)
 	}
 }
