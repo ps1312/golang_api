@@ -26,6 +26,16 @@ func (f *FoodsServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	fmt.Fprint(w, f.store.GetFoods())
 }
 
+// InMemoryFoodsStore in memory store for testing
+type InMemoryFoodsStore struct{}
+
+// GetFoods returns foods
+func (f *InMemoryFoodsStore) GetFoods() []Food {
+	foods := make([]Food, 0)
+	foods = append(foods, Food{name: "production 1", calories: 666})
+	return foods
+}
+
 func main() {
-	http.ListenAndServe(":5000", &FoodsServer{})
+	http.ListenAndServe(":5000", &FoodsServer{store: &InMemoryFoodsStore{}})
 }
