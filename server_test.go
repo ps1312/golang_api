@@ -7,24 +7,18 @@ import (
 	"testing"
 )
 
-type EmptyFoodsStoreSpy struct {
+type FoodsStoreSpy struct {
+	foods []Food
 }
 
-func (f *EmptyFoodsStoreSpy) GetFoods() []Food {
-	return []Food{}
-}
-
-type SingleItemFoodsStore struct{}
-
-func (f *SingleItemFoodsStore) GetFoods() []Food {
-	foods := make([]Food, 0)
-	foods = append(foods, Food{name: "food 1", calories: 300})
-	return foods
+func (f *FoodsStoreSpy) GetFoods() []Food {
+	return f.foods
 }
 
 func TestGetFoods(t *testing.T) {
 	t.Run("returns empty list on empty store", func(t *testing.T) {
-		server := &FoodsServer{store: &EmptyFoodsStoreSpy{}}
+		foods := []Food{}
+		server := &FoodsServer{store: &FoodsStoreSpy{foods}}
 		request, _ := http.NewRequest(http.MethodGet, "/foods", nil)
 		response := httptest.NewRecorder()
 
@@ -39,7 +33,8 @@ func TestGetFoods(t *testing.T) {
 	})
 
 	t.Run("returns array of one item on single Food in store", func(t *testing.T) {
-		server := FoodsServer{store: &SingleItemFoodsStore{}}
+		foods := []Food{{name: "food 1", calories: 300}}
+		server := FoodsServer{store: &FoodsStoreSpy{foods}}
 		request, _ := http.NewRequest(http.MethodGet, "/foods", nil)
 		response := httptest.NewRecorder()
 
