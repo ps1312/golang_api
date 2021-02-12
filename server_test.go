@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -22,28 +23,41 @@ func TestGetFoods(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodGet, "/foods", nil)
 		return request
 	}
-	makeResponseRecorder := func() *httptest.ResponseRecorder {
-		return httptest.NewRecorder()
-	}
 
 	t.Run("returns empty list on empty store", func(t *testing.T) {
-		server.store = &FoodsStoreSpy{[]Food{}}
-		response := makeResponseRecorder()
+		wantedFoods := []Food{}
+		server.store = &FoodsStoreSpy{wantedFoods}
+		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, makeGetFoodsRequest())
 
+		var got []Food
+		err := json.NewDecoder(response.Body).Decode(&got)
+
+		if err != nil {
+			t.Fatalf("Unable to decode: error %q", err)
+		}
+
 		assertStatus(t, response.Code, http.StatusOK)
-		assertResponseBody(t, response.Body.String(), "[]")
+		assertResponseBody(t, got, wantedFoods)
 	})
 
-	t.Run("returns array of one item on single Food in store", func(t *testing.T) {
-		server.store = &FoodsStoreSpy{[]Food{{name: "food 1", calories: 300}}}
-		response := makeResponseRecorder()
+	t.Run("returns single Food in store", func(t *testing.T) {
+		wantedFoods := []Food{{"food name 1", 300}}
+		server.store = &FoodsStoreSpy{wantedFoods}
+		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, makeGetFoodsRequest())
 
+		var got []Food
+		err := json.NewDecoder(response.Body).Decode(&got)
+
+		if err != nil {
+			t.Fatalf("Unable to decode: error %q", err)
+		}
+
 		assertStatus(t, response.Code, http.StatusOK)
-		assertResponseBody(t, response.Body.String(), "[{food 1 300}]")
+		assertResponseBody(t, got, wantedFoods)
 	})
 
 }
@@ -55,7 +69,7 @@ func assertStatus(t *testing.T, got int, want int) {
 	}
 }
 
-func assertResponseBody(t *testing.T, got string, want string) {
+func assertResponseBody(t *testing.T, got []Food, want []Food) {
 	t.Helper()
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %q, want %q", got, want)
