@@ -25,28 +25,6 @@ func TestGetFoods(t *testing.T) {
 		return request
 	}
 
-	t.Run("returns empty list on empty store", func(t *testing.T) {
-		wantedFoods := []Food{}
-		server.store = &FoodsStoreSpy{wantedFoods}
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, makeGetFoodsRequest())
-
-		assertStatus(t, response.Code, http.StatusOK)
-		assertJSONBody(t, response.Body, wantedFoods)
-	})
-
-	t.Run("returns single Food in store", func(t *testing.T) {
-		wantedFoods := []Food{{"food name 1", 300}}
-		server.store = &FoodsStoreSpy{wantedFoods}
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, makeGetFoodsRequest())
-
-		assertStatus(t, response.Code, http.StatusOK)
-		assertJSONBody(t, response.Body, wantedFoods)
-	})
-
 	t.Run("returns multiple Foods in store", func(t *testing.T) {
 		wantedFoods := []Food{{"food name 1", 300}, {"food name 2", 400}}
 		server.store = &FoodsStoreSpy{wantedFoods}
