@@ -6,6 +6,9 @@ import (
 	"net/http"
 )
 
+// ErrInternalServer constant for error message
+const ErrInternalServer = "Internal server error"
+
 // Food struct type
 type Food struct {
 	Name     string `json:"name"`
@@ -28,7 +31,7 @@ func (f *FoodsServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, err.Error())
+		fmt.Fprint(w, ErrInternalServer)
 	} else {
 		w.WriteHeader(http.StatusOK)
 		json.NewEncoder(w).Encode(foods)

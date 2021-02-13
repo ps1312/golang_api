@@ -21,7 +21,7 @@ func (f *FoodsStoreSpy) GetFoods() ([]Food, error) {
 type FailureStubStore struct{}
 
 func (f *FailureStubStore) GetFoods() ([]Food, error) {
-	return nil, errors.New("Internal server error")
+	return nil, errors.New(ErrInternalServer)
 }
 
 func TestGetFoods(t *testing.T) {
@@ -50,13 +50,10 @@ func TestGetFoods(t *testing.T) {
 		server.ServeHTTP(response, makeGetFoodsRequest())
 
 		got := response.Body.String()
-		want := "Internal server error"
+		want := ErrInternalServer
 
 		assertStatus(t, response.Code, http.StatusInternalServerError)
-
-		if got != want {
-			t.Errorf("got %v, wanted %v", got, want)
-		}
+		assertError(t, got, want)
 	})
 }
 
@@ -79,5 +76,11 @@ func assertJSONBody(t *testing.T, body *bytes.Buffer, want []Food) {
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func assertError(t *testing.T, got string, want string) {
+	if got != want {
+		t.Errorf("got %v, wanted %v", got, want)
 	}
 }
