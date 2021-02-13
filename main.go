@@ -27,15 +27,20 @@ type FoodsServer struct {
 
 // FoodServer handles requests for foods
 func (f *FoodsServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	foods, err := f.store.GetFoods()
+	if req.Method == http.MethodGet {
+		foods, err := f.store.GetFoods()
 
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, ErrInternalServer)
-	} else {
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(foods)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			fmt.Fprint(w, ErrInternalServer)
+		} else {
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(foods)
+		}
 	}
+
+	w.WriteHeader(http.StatusInternalServerError)
+	fmt.Fprint(w, ErrInternalServer)
 }
 
 // InMemoryFoodsStore in memory store for testing

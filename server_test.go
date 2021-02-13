@@ -57,6 +57,20 @@ func TestGetFoods(t *testing.T) {
 	})
 }
 
+func TestPostFood(t *testing.T) {
+	server := &FoodsServer{}
+	request, _ := http.NewRequest(http.MethodPost, "/foods", nil)
+	response := httptest.NewRecorder()
+
+	server.ServeHTTP(response, request)
+
+	got := response.Body.String()
+	want := ErrInternalServer
+
+	assertStatus(t, response.Code, http.StatusInternalServerError)
+	assertError(t, got, want)
+}
+
 func assertStatus(t *testing.T, got int, want int) {
 	t.Helper()
 	if got != want {
