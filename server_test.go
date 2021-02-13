@@ -59,16 +59,23 @@ func TestGetFoods(t *testing.T) {
 
 func TestPostFood(t *testing.T) {
 	server := &FoodsServer{}
-	request, _ := http.NewRequest(http.MethodPost, "/foods", nil)
-	response := httptest.NewRecorder()
 
-	server.ServeHTTP(response, request)
+	makePostFoodRequest := func() *http.Request {
+		request, _ := http.NewRequest(http.MethodPost, "/foods", nil)
+		return request
+	}
 
-	got := response.Body.String()
-	want := ErrInternalServer
+	t.Run("Delivers error on failure", func(t *testing.T) {
+		response := httptest.NewRecorder()
 
-	assertStatus(t, response.Code, http.StatusInternalServerError)
-	assertError(t, got, want)
+		server.ServeHTTP(response, makePostFoodRequest())
+
+		got := response.Body.String()
+		want := ErrInternalServer
+
+		assertStatus(t, response.Code, http.StatusInternalServerError)
+		assertError(t, got, want)
+	})
 }
 
 func assertStatus(t *testing.T, got int, want int) {
