@@ -10,11 +10,11 @@ import (
 	"testing"
 )
 
-type FoodsStoreSpy struct {
+type FoodsStoreStub struct {
 	foods []Food
 }
 
-func (f *FoodsStoreSpy) GetFoods() ([]Food, error) {
+func (f *FoodsStoreStub) GetFoods() ([]Food, error) {
 	return f.foods, nil
 }
 
@@ -34,7 +34,7 @@ func TestGetFoods(t *testing.T) {
 
 	t.Run("returns multiple Foods in store", func(t *testing.T) {
 		wantedFoods := []Food{{"food name 1", 300}, {"food name 2", 400}}
-		server.store = &FoodsStoreSpy{wantedFoods}
+		server.store = &FoodsStoreStub{wantedFoods}
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, makeGetFoodsRequest())

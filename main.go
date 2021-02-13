@@ -37,10 +37,10 @@ func (f *FoodsServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			w.WriteHeader(http.StatusOK)
 			json.NewEncoder(w).Encode(foods)
 		}
+	} else {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, ErrInternalServer)
 	}
-
-	w.WriteHeader(http.StatusInternalServerError)
-	fmt.Fprint(w, ErrInternalServer)
 }
 
 // InMemoryFoodsStore in memory store for testing
