@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -13,8 +14,14 @@ type FoodsStoreSpy struct {
 	foods []Food
 }
 
-func (f *FoodsStoreSpy) GetFoods() []Food {
-	return f.foods
+func (f *FoodsStoreSpy) GetFoods() ([]Food, error) {
+	return f.foods, nil
+}
+
+type FailureStubStore struct{}
+
+func (f *FailureStubStore) GetFoods() ([]Food, error) {
+	return nil, errors.New("Internal server error")
 }
 
 func TestGetFoods(t *testing.T) {
@@ -35,12 +42,28 @@ func TestGetFoods(t *testing.T) {
 		assertStatus(t, response.Code, http.StatusOK)
 		assertJSONBody(t, response.Body, wantedFoods)
 	})
+
+	t.Run("delivers 500 status code on storage error", func(t *testing.T) {
+		server.store = &FailureStubStore{}
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, makeGetFoodsRequest())
+
+		got := response.Body.String()
+		want := "Internal server error"
+
+		assertStatus(t, response.Code, http.StatusInternalServerError)
+
+		if got != want {
+			t.Errorf("got %v, wanted %v", got, want)
+		}
+	})
 }
 
 func assertStatus(t *testing.T, got int, want int) {
 	t.Helper()
 	if got != want {
-		t.Errorf("got %q, want %q", got, want)
+		t.Errorf("got %d, want %d", got, want)
 	}
 }
 
