@@ -8,8 +8,8 @@ import (
 
 // Food struct type
 type Food struct {
-	Name     string `json:"name"`
-	Calories int    `json:"calories"`
+	Name     string
+	Calories int
 }
 
 // FoodsServer struct to use FoodsStore
