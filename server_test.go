@@ -140,6 +140,25 @@ func TestPostFood(t *testing.T) {
 		assertError(t, got, want)
 	})
 
+	t.Run("Delivers missing params error on no Name provided", func(t *testing.T) {
+		server.store = &FoodsStoreStub{}
+		body := strings.NewReader(`
+		{
+			"calories": 1234
+		}
+		`)
+		request, _ := http.NewRequest(http.MethodPost, "/foods", body)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		got := response.Body.String()
+		want := ErrMissingParam
+
+		assertStatus(t, response.Code, http.StatusUnprocessableEntity)
+		assertError(t, got, want)
+	})
+
 	t.Run("Delivers created food and created status code", func(t *testing.T) {
 		want := Food{"test", 111}
 		server.store = &FoodsStoreStub{}

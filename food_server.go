@@ -49,6 +49,12 @@ func handlePostFood(f *FoodsServer, w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if foodParam.Name == "" {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		fmt.Fprint(w, ErrMissingParam)
+		return
+	}
+
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, ErrInternalServer)
