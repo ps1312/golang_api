@@ -18,7 +18,8 @@ func (f *FoodsStoreStub) GetFoods() ([]Food, error) {
 	return f.foods, nil
 }
 
-func (f *FoodsStoreStub) PostFood(food Food) {
+func (f *FoodsStoreStub) PostFood(food Food) (Food, error) {
+	return food, nil
 }
 
 type FailureStubStore struct{}
@@ -27,7 +28,8 @@ func (f *FailureStubStore) GetFoods() ([]Food, error) {
 	return nil, errors.New(ErrInternalServer)
 }
 
-func (f *FailureStubStore) PostFood(food Food) {
+func (f *FailureStubStore) PostFood(food Food) (Food, error) {
+	return Food{}, errors.New(ErrInternalServer)
 }
 
 type FoodsStoreSpy struct {
@@ -39,9 +41,11 @@ func (f *FoodsStoreSpy) GetFoods() ([]Food, error) {
 	return nil, nil
 }
 
-func (f *FoodsStoreSpy) PostFood(food Food) {
+func (f *FoodsStoreSpy) PostFood(food Food) (Food, error) {
 	f.calls++
 	f.postFoodParams = food
+
+	return Food{}, nil
 }
 
 func TestGetFoods(t *testing.T) {
@@ -87,7 +91,7 @@ func TestPostFood(t *testing.T) {
 	}
 
 	t.Run("Delivers error on failure", func(t *testing.T) {
-		server.store = &FoodsStoreStub{}
+		server.store = &FailureStubStore{}
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, makePostFoodRequest())
@@ -115,6 +119,23 @@ func TestPostFood(t *testing.T) {
 			t.Errorf("got %v, want %v", spy.postFoodParams, wantedFood)
 		}
 	})
+
+	t.Run("Delivers created food and created status code", func(t *testing.T) {
+		want := Food{"test", 111}
+		server.store = &FoodsStoreStub{}
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, makePostFoodRequest())
+
+		var got Food
+		json.NewDecoder(response.Body).Decode((&got))
+		assertStatus(t, response.Code, http.StatusCreated)
+
+		if got != want {
+			t.Errorf("got %v, want %v", got, want)
+		}
+	})
+
 }
 
 func assertStatus(t *testing.T, got int, want int) {

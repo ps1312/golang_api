@@ -41,7 +41,14 @@ func handleGetFoods(f *FoodsServer, w http.ResponseWriter, req *http.Request) {
 func handlePostFood(f *FoodsServer, w http.ResponseWriter, req *http.Request) {
 	var foodParam Food
 	json.NewDecoder(req.Body).Decode(&foodParam)
-	f.store.PostFood(foodParam)
-	w.WriteHeader(http.StatusInternalServerError)
-	fmt.Fprint(w, ErrInternalServer)
+	food, err := f.store.PostFood(foodParam)
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprint(w, ErrInternalServer)
+	} else {
+		w.WriteHeader(http.StatusCreated)
+		json.NewEncoder(w).Encode(food)
+	}
+
 }

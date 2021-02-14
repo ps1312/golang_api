@@ -3,7 +3,7 @@ package main
 // FoodsStore interface for Food storage operations
 type FoodsStore interface {
 	GetFoods() ([]Food, error)
-	PostFood(food Food)
+	PostFood(food Food) (Food, error)
 }
 
 // InMemoryFoodsStore in memory store for testing
@@ -17,5 +17,6 @@ func (f *InMemoryFoodsStore) GetFoods() ([]Food, error) {
 }
 
 // PostFood saves food
-func (f *InMemoryFoodsStore) PostFood(food Food) {
+func (f *InMemoryFoodsStore) PostFood(food Food) (Food, error) {
+	return Food{}, nil
 }
