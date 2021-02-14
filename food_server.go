@@ -43,6 +43,12 @@ func handlePostFood(f *FoodsServer, w http.ResponseWriter, req *http.Request) {
 	json.NewDecoder(req.Body).Decode(&foodParam)
 	food, err := f.store.PostFood(foodParam)
 
+	if foodParam.Calories == 0 {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		fmt.Fprint(w, ErrMissingParam)
+		return
+	}
+
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, ErrInternalServer)
