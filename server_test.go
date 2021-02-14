@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"reflect"
@@ -85,9 +86,8 @@ func TestGetFoods(t *testing.T) {
 func TestPostFood(t *testing.T) {
 	server := &FoodsServer{}
 
-	makePostFoodRequest := func() *http.Request {
-		var jsonStr = []byte(`{"name":"test","calories":111}`)
-		request, _ := http.NewRequest(http.MethodPost, "/foods", bytes.NewBuffer(jsonStr))
+	makePostFoodRequest := func(body string) *http.Request {
+		request, _ := http.NewRequest(http.MethodPost, "/foods", strings.NewReader(body))
 		return request
 	}
 
@@ -95,7 +95,7 @@ func TestPostFood(t *testing.T) {
 		server.store = &FailureStubStore{}
 		response := httptest.NewRecorder()
 
-		server.ServeHTTP(response, makePostFoodRequest())
+		server.ServeHTTP(response, makePostFoodRequest(""))
 
 		got := response.Body.String()
 		want := ErrInternalServer
@@ -105,66 +105,52 @@ func TestPostFood(t *testing.T) {
 	})
 
 	t.Run("Delivers correct params to storage", func(t *testing.T) {
-		wantedFood := Food{"test", 111}
 		spy := &FoodsStoreSpy{}
 		server.store = spy
-		response := httptest.NewRecorder()
+		want := Food{"test", 111}
+		body := fmt.Sprintf(`{"name": %q,"calories":%d}`, want.Name, want.Calories)
 
-		server.ServeHTTP(response, makePostFoodRequest())
+		server.ServeHTTP(httptest.NewRecorder(), makePostFoodRequest(body))
 
 		if spy.calls != 1 {
 			t.Errorf("got %d, want 1 call", spy.calls)
 		}
 
-		if spy.postFoodParams != wantedFood {
-			t.Errorf("got %v, want %v", spy.postFoodParams, wantedFood)
+		if spy.postFoodParams != want {
+			t.Errorf("got %v, want %v", spy.postFoodParams, want)
 		}
 	})
 
 	t.Run("Delivers missing params error on no Calories provided", func(t *testing.T) {
 		server.store = &FoodsStoreStub{}
-		body := strings.NewReader(`
-		{
-			"name": "food name 1"
-		}
-		`)
-		request, _ := http.NewRequest(http.MethodPost, "/foods", body)
+		body := `{"name": "food name 1"}`
 		response := httptest.NewRecorder()
 
-		server.ServeHTTP(response, request)
-
-		got := response.Body.String()
-		want := ErrMissingParam
+		server.ServeHTTP(response, makePostFoodRequest(body))
 
 		assertStatus(t, response.Code, http.StatusUnprocessableEntity)
-		assertError(t, got, want)
+		assertError(t, response.Body.String(), ErrMissingParam)
 	})
 
 	t.Run("Delivers missing params error on no Name provided", func(t *testing.T) {
 		server.store = &FoodsStoreStub{}
-		body := strings.NewReader(`
-		{
-			"calories": 1234
-		}
-		`)
-		request, _ := http.NewRequest(http.MethodPost, "/foods", body)
+		body := `{"calories": 1234}`
 		response := httptest.NewRecorder()
 
-		server.ServeHTTP(response, request)
-
-		got := response.Body.String()
-		want := ErrMissingParam
+		server.ServeHTTP(response, makePostFoodRequest(body))
 
 		assertStatus(t, response.Code, http.StatusUnprocessableEntity)
-		assertError(t, got, want)
+		assertError(t, response.Body.String(), ErrMissingParam)
 	})
 
 	t.Run("Delivers created food and created status code", func(t *testing.T) {
-		want := Food{"test", 111}
 		server.store = &FoodsStoreStub{}
 		response := httptest.NewRecorder()
 
-		server.ServeHTTP(response, makePostFoodRequest())
+		want := Food{"test", 111}
+		body := fmt.Sprintf(`{"name":%q,"calories":%d}`, want.Name, want.Calories)
+
+		server.ServeHTTP(response, makePostFoodRequest(body))
 
 		var got Food
 		json.NewDecoder(response.Body).Decode(&got)

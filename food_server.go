@@ -40,27 +40,26 @@ func handleGetFoods(f *FoodsServer, w http.ResponseWriter, req *http.Request) {
 
 func handlePostFood(f *FoodsServer, w http.ResponseWriter, req *http.Request) {
 	var foodParam Food
-	json.NewDecoder(req.Body).Decode(&foodParam)
+	err := json.NewDecoder(req.Body).Decode(&foodParam)
 	food, err := f.store.PostFood(foodParam)
-
-	if foodParam.Calories == 0 {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		fmt.Fprint(w, ErrMissingParam)
-		return
-	}
-
-	if foodParam.Name == "" {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		fmt.Fprint(w, ErrMissingParam)
-		return
-	}
 
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, ErrInternalServer)
 	} else {
+		if foodParam.Calories == 0 {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			fmt.Fprint(w, ErrMissingParam)
+			return
+		}
+
+		if foodParam.Name == "" {
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			fmt.Fprint(w, ErrMissingParam)
+			return
+		}
+
 		w.WriteHeader(http.StatusCreated)
 		json.NewEncoder(w).Encode(food)
 	}
-
 }
