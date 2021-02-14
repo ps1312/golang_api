@@ -20,20 +20,28 @@ type FoodsServer struct {
 // FoodServer handles requests for foods
 func (f *FoodsServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if req.Method == http.MethodGet {
-		foods, err := f.store.GetFoods()
-
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			fmt.Fprint(w, ErrInternalServer)
-		} else {
-			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(foods)
-		}
+		handleGetFoods(f, w, req)
 	} else {
-		var foodParam Food
-		json.NewDecoder(req.Body).Decode(&foodParam)
-		f.store.PostFood(foodParam)
+		handlePostFood(f, w, req)
+	}
+}
+
+func handleGetFoods(f *FoodsServer, w http.ResponseWriter, req *http.Request) {
+	foods, err := f.store.GetFoods()
+
+	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, ErrInternalServer)
+	} else {
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(foods)
 	}
+}
+
+func handlePostFood(f *FoodsServer, w http.ResponseWriter, req *http.Request) {
+	var foodParam Food
+	json.NewDecoder(req.Body).Decode(&foodParam)
+	f.store.PostFood(foodParam)
+	w.WriteHeader(http.StatusInternalServerError)
+	fmt.Fprint(w, ErrInternalServer)
 }
