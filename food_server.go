@@ -30,36 +30,32 @@ func handleGetFoods(f *FoodsServer, w http.ResponseWriter, req *http.Request) {
 	foods, err := f.store.GetFoods()
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, ErrInternalServer)
+		respondWithError(w, http.StatusInternalServerError, ErrInternalServer)
 	} else {
-		w.WriteHeader(http.StatusOK)
-		json.NewEncoder(w).Encode(foods)
+		respondWithSuccess(w, http.StatusOK, foods)
 	}
 }
 
 func handlePostFood(f *FoodsServer, w http.ResponseWriter, req *http.Request) {
 	var foodParam Food
-	err := json.NewDecoder(req.Body).Decode(&foodParam)
+	json.NewDecoder(req.Body).Decode(&foodParam)
 	food, err := f.store.PostFood(foodParam)
 
 	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		fmt.Fprint(w, ErrInternalServer)
+		respondWithError(w, http.StatusInternalServerError, ErrInternalServer)
+	} else if foodParam.Calories == 0 || foodParam.Name == "" {
+		respondWithError(w, http.StatusUnprocessableEntity, ErrMissingParam)
 	} else {
-		if foodParam.Calories == 0 {
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			fmt.Fprint(w, ErrMissingParam)
-			return
-		}
-
-		if foodParam.Name == "" {
-			w.WriteHeader(http.StatusUnprocessableEntity)
-			fmt.Fprint(w, ErrMissingParam)
-			return
-		}
-
-		w.WriteHeader(http.StatusCreated)
-		json.NewEncoder(w).Encode(food)
+		respondWithSuccess(w, http.StatusCreated, food)
 	}
+}
+
+func respondWithError(w http.ResponseWriter, status int, err string) {
+	w.WriteHeader(status)
+	fmt.Fprint(w, err)
+}
+
+func respondWithSuccess(w http.ResponseWriter, status int, body interface{}) {
+	w.WriteHeader(status)
+	json.NewEncoder(w).Encode(body)
 }
