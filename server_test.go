@@ -18,10 +18,30 @@ func (f *FoodsStoreStub) GetFoods() ([]Food, error) {
 	return f.foods, nil
 }
 
+func (f *FoodsStoreStub) PostFood(food Food) {
+}
+
 type FailureStubStore struct{}
 
 func (f *FailureStubStore) GetFoods() ([]Food, error) {
 	return nil, errors.New(ErrInternalServer)
+}
+
+func (f *FailureStubStore) PostFood(food Food) {
+}
+
+type FoodsStoreSpy struct {
+	calls          int
+	postFoodParams Food
+}
+
+func (f *FoodsStoreSpy) GetFoods() ([]Food, error) {
+	return nil, nil
+}
+
+func (f *FoodsStoreSpy) PostFood(food Food) {
+	f.calls++
+	f.postFoodParams = food
 }
 
 func TestGetFoods(t *testing.T) {
@@ -61,11 +81,13 @@ func TestPostFood(t *testing.T) {
 	server := &FoodsServer{}
 
 	makePostFoodRequest := func() *http.Request {
-		request, _ := http.NewRequest(http.MethodPost, "/foods", nil)
+		var jsonStr = []byte(`{"name":"test","calories":111}`)
+		request, _ := http.NewRequest(http.MethodPost, "/foods", bytes.NewBuffer(jsonStr))
 		return request
 	}
 
 	t.Run("Delivers error on failure", func(t *testing.T) {
+		server.store = &FoodsStoreStub{}
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, makePostFoodRequest())
@@ -75,6 +97,23 @@ func TestPostFood(t *testing.T) {
 
 		assertStatus(t, response.Code, http.StatusInternalServerError)
 		assertError(t, got, want)
+	})
+
+	t.Run("Delivers correct params to storage", func(t *testing.T) {
+		wantedFood := Food{"test", 111}
+		spy := &FoodsStoreSpy{}
+		server.store = spy
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, makePostFoodRequest())
+
+		if spy.calls != 1 {
+			t.Errorf("got %d, want 1 call", spy.calls)
+		}
+
+		if spy.postFoodParams != wantedFood {
+			t.Errorf("got %v, want %v", spy.postFoodParams, wantedFood)
+		}
 	})
 }
 

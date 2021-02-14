@@ -18,6 +18,7 @@ type Food struct {
 // FoodsStore interface for Food storage operations
 type FoodsStore interface {
 	GetFoods() ([]Food, error)
+	PostFood(food Food)
 }
 
 // FoodsServer struct to use FoodsStore
@@ -38,6 +39,9 @@ func (f *FoodsServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 			json.NewEncoder(w).Encode(foods)
 		}
 	} else {
+		var foodParam Food
+		json.NewDecoder(req.Body).Decode(&foodParam)
+		f.store.PostFood(foodParam)
 		w.WriteHeader(http.StatusInternalServerError)
 		fmt.Fprint(w, ErrInternalServer)
 	}
@@ -51,6 +55,9 @@ func (f *InMemoryFoodsStore) GetFoods() ([]Food, error) {
 	foods := make([]Food, 0)
 	foods = append(foods, Food{Name: "production 1", Calories: 666})
 	return foods, nil
+}
+
+func (f *InMemoryFoodsStore) PostFood(food Food) {
 }
 
 func main() {
