@@ -95,7 +95,7 @@ func TestPostFood(t *testing.T) {
 		server.store = &FailureStubStore{}
 		response := httptest.NewRecorder()
 
-		server.ServeHTTP(response, makePostFoodRequest(""))
+		server.ServeHTTP(response, makePostFoodRequest(`{"name": "any-name","calories":123}`))
 
 		got := response.Body.String()
 		want := ErrInternalServer
@@ -152,6 +152,18 @@ func TestPostFood(t *testing.T) {
 
 		assertStatus(t, response.Code, http.StatusUnprocessableEntity)
 		assertError(t, response.Body.String(), ErrMissingParam)
+	})
+
+	t.Run("Does not call store on missing params error", func(t *testing.T) {
+		spy := &FoodsStoreSpy{}
+		server.store = spy
+		body := fmt.Sprintf(`{"name": %q}`, "any-name")
+
+		server.ServeHTTP(httptest.NewRecorder(), makePostFoodRequest(body))
+
+		if spy.calls != 0 {
+			t.Errorf("got %d, want no calls", spy.calls)
+		}
 	})
 
 	t.Run("Delivers created food and created status code", func(t *testing.T) {
