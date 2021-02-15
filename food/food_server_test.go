@@ -1,4 +1,4 @@
-package main
+package food
 
 import (
 	"bytes"
@@ -60,7 +60,7 @@ func TestGetFoods(t *testing.T) {
 
 	t.Run("returns multiple Foods in store", func(t *testing.T) {
 		wantedFoods := []Food{{"food name 1", 300}, {"food name 2", 400}}
-		server.store = &FoodsStoreStub{wantedFoods}
+		server.Store = &FoodsStoreStub{wantedFoods}
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, makeGetFoodsRequest())
@@ -70,7 +70,7 @@ func TestGetFoods(t *testing.T) {
 	})
 
 	t.Run("delivers 500 status code on storage error", func(t *testing.T) {
-		server.store = &FailureStubStore{}
+		server.Store = &FailureStubStore{}
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, makeGetFoodsRequest())
@@ -92,7 +92,7 @@ func TestPostFood(t *testing.T) {
 	}
 
 	t.Run("Delivers error on failure", func(t *testing.T) {
-		server.store = &FailureStubStore{}
+		server.Store = &FailureStubStore{}
 		response := httptest.NewRecorder()
 
 		server.ServeHTTP(response, makePostFoodRequest(`{"name": "any-name","calories":123}`))
@@ -106,7 +106,7 @@ func TestPostFood(t *testing.T) {
 
 	t.Run("Delivers correct params to storage", func(t *testing.T) {
 		spy := &FoodsStoreSpy{}
-		server.store = spy
+		server.Store = spy
 		want := Food{"test", 111}
 		body := fmt.Sprintf(`{"name": %q,"calories":%d}`, want.Name, want.Calories)
 
@@ -120,7 +120,7 @@ func TestPostFood(t *testing.T) {
 	})
 
 	t.Run("Delivers missing params error on no Calories provided", func(t *testing.T) {
-		server.store = &FoodsStoreStub{}
+		server.Store = &FoodsStoreStub{}
 		body := `{"name": "food name 1"}`
 		response := httptest.NewRecorder()
 
@@ -131,7 +131,7 @@ func TestPostFood(t *testing.T) {
 	})
 
 	t.Run("Delivers missing params error on no Name provided", func(t *testing.T) {
-		server.store = &FoodsStoreStub{}
+		server.Store = &FoodsStoreStub{}
 		body := `{"calories": 1234}`
 		response := httptest.NewRecorder()
 
@@ -142,7 +142,7 @@ func TestPostFood(t *testing.T) {
 	})
 
 	t.Run("Delivers missing params error on invalid body", func(t *testing.T) {
-		server.store = &FoodsStoreStub{}
+		server.Store = &FoodsStoreStub{}
 		body := `{"any_key": false}`
 		response := httptest.NewRecorder()
 
@@ -154,7 +154,7 @@ func TestPostFood(t *testing.T) {
 
 	t.Run("Does not call store on missing params error", func(t *testing.T) {
 		spy := &FoodsStoreSpy{}
-		server.store = spy
+		server.Store = spy
 		body := fmt.Sprintf(`{"name": %q}`, "any-name")
 
 		server.ServeHTTP(httptest.NewRecorder(), makePostFoodRequest(body))
@@ -163,7 +163,7 @@ func TestPostFood(t *testing.T) {
 	})
 
 	t.Run("Delivers created food and created status code", func(t *testing.T) {
-		server.store = &FoodsStoreStub{}
+		server.Store = &FoodsStoreStub{}
 		response := httptest.NewRecorder()
 
 		want := Food{"test", 111}

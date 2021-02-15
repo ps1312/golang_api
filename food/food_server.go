@@ -1,10 +1,20 @@
-package main
+package food
 
 import (
 	"encoding/json"
 	"fmt"
 	"net/http"
 )
+
+// ErrMissingParam error struct for displaying missing param error with specified param
+type ErrMissingParam string
+
+func (e *ErrMissingParam) Error() string {
+	return string("Missing parameter: " + *e)
+}
+
+// ErrInternalServer constant for error message
+const ErrInternalServer = "Internal server error"
 
 // Food struct type
 type Food struct {
@@ -14,7 +24,7 @@ type Food struct {
 
 // FoodsServer struct to use FoodsStore
 type FoodsServer struct {
-	store FoodsStore
+	Store FoodsStore
 }
 
 // FoodServer handles requests for foods
@@ -27,7 +37,7 @@ func (f *FoodsServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 }
 
 func handleGetFoods(f *FoodsServer, w http.ResponseWriter, req *http.Request) {
-	foods, err := f.store.GetFoods()
+	foods, err := f.Store.GetFoods()
 
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, ErrInternalServer)
@@ -52,7 +62,7 @@ func handlePostFood(f *FoodsServer, w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	food, err := f.store.PostFood(foodParam)
+	food, err := f.Store.PostFood(foodParam)
 
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, ErrInternalServer)

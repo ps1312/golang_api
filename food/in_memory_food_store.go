@@ -1,4 +1,4 @@
-package main
+package food
 
 // FoodsStore interface for Food storage operations
 type FoodsStore interface {
@@ -8,16 +8,16 @@ type FoodsStore interface {
 
 // InMemoryFoodsStore in memory store for testing
 type InMemoryFoodsStore struct {
-	foods []Food
+	Foods []Food
 }
 
-// GetFoods returns foods
+// GetFoods returns Foods
 func (f *InMemoryFoodsStore) GetFoods() ([]Food, error) {
-	return f.foods, nil
+	return f.Foods, nil
 }
 
 // PostFood saves food
 func (f *InMemoryFoodsStore) PostFood(food Food) (Food, error) {
-	f.foods = append(f.foods, food)
+	f.Foods = append(f.Foods, food)
 	return food, nil
 }
