@@ -11,5 +11,5 @@ const ErrInternalServer = "Internal server error"
 const ErrMissingParam = "Missing parameter"
 
 func main() {
-	http.ListenAndServe(":5000", &FoodsServer{store: &InMemoryFoodsStore{}})
+	http.ListenAndServe(":5000", &FoodsServer{store: &InMemoryFoodsStore{[]Food{}}})
 }
