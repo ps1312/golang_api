@@ -6,6 +6,9 @@ import (
 	"net/http"
 )
 
+// ErrPasswordsDontMatch error const
+const ErrPasswordsDontMatch = "Passwords don't match."
+
 // ErrMissingParam error struct for displaying missing param error with specified param
 type ErrMissingParam string
 
@@ -36,8 +39,14 @@ func (u *UsersServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	json.NewDecoder(req.Body).Decode(&user)
 
 	w.WriteHeader(http.StatusUnprocessableEntity)
-	err := ErrMissingParam(checkMissingParams(user))
-	fmt.Fprint(w, err.Error())
+	missing := ErrMissingParam(checkMissingParams(user))
+
+	if missing != "" {
+		fmt.Fprint(w, missing.Error())
+		return
+	}
+
+	fmt.Fprint(w, ErrPasswordsDontMatch)
 }
 
 func checkMissingParams(user User) (missingParams string) {
@@ -56,6 +65,9 @@ func checkMissingParams(user User) (missingParams string) {
 	if user.PasswordConfirm == "" {
 		missingParams += "PasswordConfirm, "
 	}
-	missingParams = missingParams[:len(missingParams)-2]
+
+	if missingParams != "" {
+		missingParams = missingParams[:len(missingParams)-2]
+	}
 	return
 }

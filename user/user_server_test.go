@@ -30,6 +30,19 @@ func TestRegister(t *testing.T) {
 			assertMissingParams(t, server, strings.NewReader(testCase.body), testCase.want.Error())
 		}
 	})
+
+	t.Run("Delivers 422 status code and ErrPasswordsDontMatch error on not equal passwords", func(t *testing.T) {
+		body := `{"name":"any-name", "email": "email@mail.com", "password": "password123", "passwordConfirm": "diffPassword"}`
+		request, _ := http.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
+		response := httptest.NewRecorder()
+		server.ServeHTTP(response, request)
+
+		got := response.Body.String()
+		want := ErrPasswordsDontMatch
+
+		assertStatusCode(t, response.Code, http.StatusUnprocessableEntity)
+		assertError(t, got, want)
+	})
 }
 
 func assertMissingParams(t *testing.T, server UsersServer, body io.Reader, want string) {
