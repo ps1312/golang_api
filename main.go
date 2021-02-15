@@ -11,6 +11,10 @@ func (e *ErrMissingParam) Error() string {
 	return string("Missing parameter: " + *e)
 }
 
+func (e *ErrMissingParam) String() string {
+	return string("Missing parameter: " + *e)
+}
+
 // ErrInternalServer constant for error message
 const ErrInternalServer = "Internal server error"
 

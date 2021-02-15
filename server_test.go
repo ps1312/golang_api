@@ -127,8 +127,7 @@ func TestPostFood(t *testing.T) {
 		server.ServeHTTP(response, makePostFoodRequest(body))
 
 		assertStatus(t, response.Code, http.StatusUnprocessableEntity)
-		err := ErrMissingParam("Calories")
-		assertError(t, response.Body.String(), err.Error())
+		assertMissingParam(t, response.Body.String(), "Calories")
 	})
 
 	t.Run("Delivers missing params error on no Name provided", func(t *testing.T) {
@@ -139,8 +138,7 @@ func TestPostFood(t *testing.T) {
 		server.ServeHTTP(response, makePostFoodRequest(body))
 
 		assertStatus(t, response.Code, http.StatusUnprocessableEntity)
-		err := ErrMissingParam("Name")
-		assertError(t, response.Body.String(), err.Error())
+		assertMissingParam(t, response.Body.String(), "Name")
 	})
 
 	t.Run("Delivers missing params error on invalid body", func(t *testing.T) {
@@ -151,8 +149,7 @@ func TestPostFood(t *testing.T) {
 		server.ServeHTTP(response, makePostFoodRequest(body))
 
 		assertStatus(t, response.Code, http.StatusUnprocessableEntity)
-		err := ErrMissingParam("Name")
-		assertError(t, response.Body.String(), err.Error())
+		assertMissingParam(t, response.Body.String(), "Name")
 	})
 
 	t.Run("Does not call store on missing params error", func(t *testing.T) {
@@ -211,6 +208,13 @@ func assertJSONBody(t *testing.T, body *bytes.Buffer, want []Food) {
 
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("got %q, want %q", got, want)
+	}
+}
+
+func assertMissingParam(t *testing.T, got string, want string) {
+	err := ErrMissingParam(want)
+	if got != err.Error() {
+		t.Errorf("got %v, wanted %v", got, want)
 	}
 }
 
