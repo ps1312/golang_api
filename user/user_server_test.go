@@ -18,27 +18,37 @@ type UsersServer struct{}
 
 func (u *UsersServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	w.WriteHeader(http.StatusUnprocessableEntity)
-	err := ErrMissingParam("Name")
+	err := ErrMissingParam("Name, Email, Password, PasswordConfirm")
 	fmt.Fprint(w, err.Error())
 }
 
-func TestRegisterDelivers422StatusCodeAndMissingParamErrorOnNoParamsProvided(t *testing.T) {
+func TestRegister(t *testing.T) {
 	server := UsersServer{}
-	request, _ := http.NewRequest(http.MethodPost, "/register", nil)
-	response := httptest.NewRecorder()
-	fmt.Println(ErrMissingParam("Name"))
 
-	server.ServeHTTP(response, request)
+	t.Run("Delivers 422 status code and missing param error on no params provided", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodPost, "/register", nil)
+		response := httptest.NewRecorder()
 
-	got := response.Body.String()
-	want := ErrMissingParam("Name")
+		server.ServeHTTP(response, request)
 
-	code := response.Code
-	if code != http.StatusUnprocessableEntity {
-		t.Errorf("got %d, want 422", code)
-	}
+		got := response.Body.String()
+		want := ErrMissingParam("Name, Email, Password, PasswordConfirm")
 
-	if got != want.Error() {
+		assertStatusCode(t, response.Code, http.StatusUnprocessableEntity)
+		assertError(t, got, want.Error())
+	})
+}
+
+func assertError(t *testing.T, got string, want string) {
+	t.Helper()
+	if got != want {
 		t.Errorf("got %v, want %v", got, want)
+	}
+}
+
+func assertStatusCode(t *testing.T, got int, want int) {
+	t.Helper()
+	if got != want {
+		t.Errorf("got %d, want %d", got, want)
 	}
 }
