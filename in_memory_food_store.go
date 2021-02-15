@@ -7,15 +7,17 @@ type FoodsStore interface {
 }
 
 // InMemoryFoodsStore in memory store for testing
-type InMemoryFoodsStore struct{}
+type InMemoryFoodsStore struct {
+	foods []Food
+}
 
 // GetFoods returns foods
 func (f *InMemoryFoodsStore) GetFoods() ([]Food, error) {
-	foods := make([]Food, 0)
-	return foods, nil
+	return f.foods, nil
 }
 
 // PostFood saves food
 func (f *InMemoryFoodsStore) PostFood(food Food) (Food, error) {
-	return Food{}, nil
+	f.foods = append(f.foods, food)
+	return food, nil
 }
