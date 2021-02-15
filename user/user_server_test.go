@@ -3,6 +3,7 @@ package user
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -52,44 +53,34 @@ func TestRegister(t *testing.T) {
 	server := UsersServer{}
 
 	t.Run("Delivers 422 status code and missing param error on no body provided", func(t *testing.T) {
-		request, _ := http.NewRequest(http.MethodPost, "/register", nil)
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		got := response.Body.String()
 		want := ErrMissingParam("Name, Email, Password, PasswordConfirm")
-
-		assertStatusCode(t, response.Code, http.StatusUnprocessableEntity)
-		assertError(t, got, want.Error())
+		assertMissingParams(t, server, nil, want.Error())
 	})
 
 	t.Run("Delivers 422 status code and missing param error on no params provided", func(t *testing.T) {
-		request, _ := http.NewRequest(http.MethodPost, "/register", strings.NewReader(""))
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		got := response.Body.String()
 		want := ErrMissingParam("Name, Email, Password, PasswordConfirm")
-
-		assertStatusCode(t, response.Code, http.StatusUnprocessableEntity)
-		assertError(t, got, want.Error())
+		assertMissingParams(t, server, strings.NewReader(""), want.Error())
 	})
 
 	t.Run("Delivers 422 status code and missing params error on no Name provided", func(t *testing.T) {
 		body := `{"email": "email@mail.com", "password": "password123", "passwordConfirm": "password123"}`
-		request, _ := http.NewRequest(http.MethodPost, "/register", strings.NewReader(body))
-		response := httptest.NewRecorder()
-
-		server.ServeHTTP(response, request)
-
-		got := response.Body.String()
 		want := ErrMissingParam("Name")
-
-		assertStatusCode(t, response.Code, http.StatusUnprocessableEntity)
-		assertError(t, got, want.Error())
+		assertMissingParams(t, server, strings.NewReader(body), want.Error())
 	})
+}
+
+func assertMissingParams(t *testing.T, server UsersServer, body io.Reader, want string) {
+	t.Helper()
+
+	request, _ := http.NewRequest(http.MethodPost, "/register", body)
+	response := httptest.NewRecorder()
+
+	server.ServeHTTP(response, request)
+
+	got := response.Body.String()
+
+	assertStatusCode(t, response.Code, http.StatusUnprocessableEntity)
+	assertError(t, got, want)
 }
 
 func assertError(t *testing.T, got string, want string) {
