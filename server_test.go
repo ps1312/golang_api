@@ -127,7 +127,8 @@ func TestPostFood(t *testing.T) {
 		server.ServeHTTP(response, makePostFoodRequest(body))
 
 		assertStatus(t, response.Code, http.StatusUnprocessableEntity)
-		assertError(t, response.Body.String(), ErrMissingParam)
+		err := ErrMissingParam("Calories")
+		assertError(t, response.Body.String(), err.Error())
 	})
 
 	t.Run("Delivers missing params error on no Name provided", func(t *testing.T) {
@@ -138,7 +139,8 @@ func TestPostFood(t *testing.T) {
 		server.ServeHTTP(response, makePostFoodRequest(body))
 
 		assertStatus(t, response.Code, http.StatusUnprocessableEntity)
-		assertError(t, response.Body.String(), ErrMissingParam)
+		err := ErrMissingParam("Name")
+		assertError(t, response.Body.String(), err.Error())
 	})
 
 	t.Run("Delivers missing params error on invalid body", func(t *testing.T) {
@@ -149,7 +151,8 @@ func TestPostFood(t *testing.T) {
 		server.ServeHTTP(response, makePostFoodRequest(body))
 
 		assertStatus(t, response.Code, http.StatusUnprocessableEntity)
-		assertError(t, response.Body.String(), ErrMissingParam)
+		err := ErrMissingParam("Name")
+		assertError(t, response.Body.String(), err.Error())
 	})
 
 	t.Run("Does not call store on missing params error", func(t *testing.T) {

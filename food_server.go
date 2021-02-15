@@ -40,8 +40,15 @@ func handlePostFood(f *FoodsServer, w http.ResponseWriter, req *http.Request) {
 	var foodParam Food
 	json.NewDecoder(req.Body).Decode(&foodParam)
 
-	if foodParam.Calories == 0 || foodParam.Name == "" {
-		respondWithError(w, http.StatusUnprocessableEntity, ErrMissingParam)
+	if foodParam.Name == "" {
+		err := ErrMissingParam("Name")
+		respondWithError(w, http.StatusUnprocessableEntity, err.Error())
+		return
+	}
+
+	if foodParam.Calories == 0 {
+		err := ErrMissingParam("Calories")
+		respondWithError(w, http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 

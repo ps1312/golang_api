@@ -4,11 +4,15 @@ import (
 	"net/http"
 )
 
+// ErrMissingParam error struct for displaying missing param error with specified param
+type ErrMissingParam string
+
+func (e *ErrMissingParam) Error() string {
+	return string("Missing parameter: " + *e)
+}
+
 // ErrInternalServer constant for error message
 const ErrInternalServer = "Internal server error"
-
-// ErrMissingParam constant for error message
-const ErrMissingParam = "Missing parameter"
 
 func main() {
 	http.ListenAndServe(":5000", &FoodsServer{store: &InMemoryFoodsStore{[]Food{}}})
