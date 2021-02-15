@@ -26,6 +26,13 @@ type User struct {
 type UsersServer struct{}
 
 func (u *UsersServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	if req.Body == nil {
+		w.WriteHeader(http.StatusUnprocessableEntity)
+		err := ErrMissingParam("Name, Email, Password, PasswordConfirm")
+		fmt.Fprint(w, err.Error())
+		return
+	}
+
 	missingParams := ""
 	var user User
 	json.NewDecoder(req.Body).Decode(&user)
@@ -43,6 +50,19 @@ func (u *UsersServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 func TestRegister(t *testing.T) {
 	server := UsersServer{}
+
+	t.Run("Delivers 422 status code and missing param error on no body provided", func(t *testing.T) {
+		request, _ := http.NewRequest(http.MethodPost, "/register", nil)
+		response := httptest.NewRecorder()
+
+		server.ServeHTTP(response, request)
+
+		got := response.Body.String()
+		want := ErrMissingParam("Name, Email, Password, PasswordConfirm")
+
+		assertStatusCode(t, response.Code, http.StatusUnprocessableEntity)
+		assertError(t, got, want.Error())
+	})
 
 	t.Run("Delivers 422 status code and missing param error on no params provided", func(t *testing.T) {
 		request, _ := http.NewRequest(http.MethodPost, "/register", strings.NewReader(""))
