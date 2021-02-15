@@ -5,28 +5,29 @@ import (
 	"testing"
 )
 
-func TestInMemoryGetFoods(t *testing.T) {
+func TestInMemoryFoodStore(t *testing.T) {
 	t.Run("Delivers empty slice of foods on empty store", func(t *testing.T) {
 		store := InMemoryFoodsStore{[]Food{}}
-		got, _ := store.GetFoods()
-		want := []Food{}
-
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("got %v, want %v", got, want)
-		}
+		assertFoods(t, store, []Food{})
 	})
 
-	t.Run("Delivers slice of stored foods", func(t *testing.T) {
+	t.Run("Delivers slice of foods with inserted food", func(t *testing.T) {
 		food := Food{"food", 1234}
+		food2 := Food{"food 2", 4321}
 		store := InMemoryFoodsStore{}
 
 		store.PostFood(food)
+		assertFoods(t, store, []Food{food})
 
-		got, _ := store.GetFoods()
-		want := []Food{food}
-
-		if !reflect.DeepEqual(got, want) {
-			t.Errorf("got %v, want %v", got, want)
-		}
+		store.PostFood(food2)
+		assertFoods(t, store, []Food{food, food2})
 	})
+}
+
+func assertFoods(t *testing.T, store InMemoryFoodsStore, want []Food) {
+	t.Helper()
+	got, _ := store.GetFoods()
+	if !reflect.DeepEqual(got, want) {
+		t.Errorf("got %v, want %v", got, want)
+	}
 }
