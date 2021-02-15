@@ -112,9 +112,7 @@ func TestPostFood(t *testing.T) {
 
 		server.ServeHTTP(httptest.NewRecorder(), makePostFoodRequest(body))
 
-		if spy.calls != 1 {
-			t.Errorf("got %d, want 1 call", spy.calls)
-		}
+		assertCallsCount(t, spy.calls, 1)
 
 		if spy.postFoodParams != want {
 			t.Errorf("got %v, want %v", spy.postFoodParams, want)
@@ -161,9 +159,7 @@ func TestPostFood(t *testing.T) {
 
 		server.ServeHTTP(httptest.NewRecorder(), makePostFoodRequest(body))
 
-		if spy.calls != 0 {
-			t.Errorf("got %d, want no calls", spy.calls)
-		}
+		assertCallsCount(t, spy.calls, 0)
 	})
 
 	t.Run("Delivers created food and created status code", func(t *testing.T) {
@@ -184,6 +180,13 @@ func TestPostFood(t *testing.T) {
 		}
 	})
 
+}
+
+func assertCallsCount(t *testing.T, got int, want int) {
+	t.Helper()
+	if got != want {
+		t.Errorf("got %d, want %d", got, want)
+	}
 }
 
 func assertStatus(t *testing.T, got int, want int) {
