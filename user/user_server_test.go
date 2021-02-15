@@ -1,63 +1,12 @@
 package user
 
 import (
-	"encoding/json"
-	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 )
-
-// ErrMissingParam error struct for displaying missing param error with specified param
-type ErrMissingParam string
-
-func (e *ErrMissingParam) Error() string {
-	return fmt.Sprintf("Missing parameter(s): %q", *e)
-}
-
-type User struct {
-	Name            string
-	Email           string
-	Password        string
-	PasswordConfirm string
-}
-
-type UsersServer struct{}
-
-func (u *UsersServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
-	if req.Body == nil {
-		w.WriteHeader(http.StatusUnprocessableEntity)
-		err := ErrMissingParam("Name, Email, Password, PasswordConfirm")
-		fmt.Fprint(w, err.Error())
-		return
-	}
-
-	missingParams := ""
-	var user User
-	json.NewDecoder(req.Body).Decode(&user)
-
-	if user.Name == "" {
-		missingParams += "Name, "
-	}
-
-	if user.Email == "" {
-		missingParams += "Email, "
-	}
-
-	if user.Password == "" {
-		missingParams += "Password, "
-	}
-
-	if user.PasswordConfirm == "" {
-		missingParams += "PasswordConfirm, "
-	}
-
-	w.WriteHeader(http.StatusUnprocessableEntity)
-	err := ErrMissingParam(missingParams[:len(missingParams)-2])
-	fmt.Fprint(w, err.Error())
-}
 
 func TestRegister(t *testing.T) {
 	server := UsersServer{}
