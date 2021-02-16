@@ -123,6 +123,21 @@ func TestRegister(t *testing.T) {
 		assertString(t, got.Email, want.Email)
 		assertString(t, got.Password, wantedEncryptedPassword)
 	})
+
+	t.Run("Delivers 500 status code on store error", func(t *testing.T) {
+		sut, encrypter, _ := makeSUT()
+		body := `{"name":"any-name", "email": "email@mail.com", "password": "password123", "passwordConfirm": "password123"}`
+		request, _ := http.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
+		response := httptest.NewRecorder()
+
+		const wantedEncryptedPassword = "hashed_password"
+		encrypter.respondWith(wantedEncryptedPassword)
+
+		sut.ServeHTTP(response, request)
+
+		assertStatusCode(t, response.Code, http.StatusInternalServerError)
+		assertError(t, response.Body.String(), ErrInternalServer)
+	})
 }
 
 func assertMissingParams(t *testing.T, sut UsersServer, body io.Reader, want string) {
