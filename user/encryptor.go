@@ -4,7 +4,7 @@ import "golang.org/x/crypto/bcrypt"
 
 // Encrypter password interface
 type Encrypter interface {
-	encrypt(password string) (string, error)
+	encrypt(password string, cost int) (string, error)
 }
 
 // BCryptEncrypter implementation

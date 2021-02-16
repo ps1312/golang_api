@@ -16,7 +16,7 @@ type EncrypterSpy struct {
 	defaultError    error
 }
 
-func (e *EncrypterSpy) encrypt(password string) (string, error) {
+func (e *EncrypterSpy) encrypt(password string, cost int) (string, error) {
 	e.calls++
 	e.encryptParam = password
 	return e.defaultPassword, e.defaultError

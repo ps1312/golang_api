@@ -66,7 +66,7 @@ func (u *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	hashed, hashErr := u.Encrypter.encrypt(user.Password)
+	hashed, hashErr := u.Encrypter.encrypt(user.Password, 10)
 
 	if hashErr != nil {
 		respondWithError(w, http.StatusInternalServerError, ErrInternalServer)
