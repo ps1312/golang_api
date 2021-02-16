@@ -2,10 +2,10 @@ package users
 
 // InMemoryUsersStore storage
 type InMemoryUsersStore struct {
-	users []DatabaseModel
+	Users []DatabaseModel
 }
 
 func (i *InMemoryUsersStore) save(user DatabaseModel) error {
-	i.users = append(i.users, user)
+	i.Users = append(i.Users, user)
 	return nil
 }

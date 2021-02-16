@@ -8,7 +8,7 @@ func Test(t *testing.T) {
 
 	store.save(model)
 
-	if len(store.users) != 1 {
-		t.Errorf("got %d, want 1", len(store.users))
+	if len(store.Users) != 1 {
+		t.Errorf("got %d, want 1", len(store.Users))
 	}
 }
