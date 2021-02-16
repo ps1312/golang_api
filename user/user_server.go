@@ -6,8 +6,11 @@ import (
 	"net/http"
 )
 
+// ErrInternalServer error const
+const ErrInternalServer = "Internal server error"
+
 // ErrPasswordsDontMatch error const
-const ErrPasswordsDontMatch = "Passwords don't match."
+const ErrPasswordsDontMatch = "Passwords don't match"
 
 // ErrMissingParam error struct for displaying missing param error with specified param
 type ErrMissingParam string
@@ -50,8 +53,13 @@ func (u *UsersServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	if user.Password != user.PasswordConfirm {
+		respondWithError(w, http.StatusUnprocessableEntity, ErrPasswordsDontMatch)
+		return
+	}
+
 	u.Encrypter.encrypt(user.Password)
-	fmt.Fprint(w, ErrPasswordsDontMatch)
+	respondWithError(w, http.StatusInternalServerError, ErrInternalServer)
 }
 
 func respondWithError(w http.ResponseWriter, status int, err string) {

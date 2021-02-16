@@ -75,6 +75,17 @@ func TestRegister(t *testing.T) {
 		assertCalls(t, spy.calls, 1)
 		assertString(t, spy.encryptParam, "password123")
 	})
+
+	t.Run("Delivers internal server error on encryptor failure", func(t *testing.T) {
+		sut, _ := makeSUT()
+		body := `{"name":"any-name", "email": "email@mail.com", "password": "password123", "passwordConfirm": "password123"}`
+		request, _ := http.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
+		response := httptest.NewRecorder()
+		sut.ServeHTTP(response, request)
+
+		assertStatusCode(t, response.Code, http.StatusInternalServerError)
+		assertError(t, response.Body.String(), ErrInternalServer)
+	})
 }
 
 func assertMissingParams(t *testing.T, sut UsersServer, body io.Reader, want string) {
