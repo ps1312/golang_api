@@ -32,9 +32,15 @@ type Encrypter interface {
 	encrypt(password string) string
 }
 
+// Store user store interface
+type Store interface {
+	save()
+}
+
 // UsersServer struct
 type UsersServer struct {
 	Encrypter Encrypter
+	Store     Store
 }
 
 func (u *UsersServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
@@ -60,6 +66,7 @@ func (u *UsersServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	u.Encrypter.encrypt(user.Password)
 	respondWithError(w, http.StatusInternalServerError, ErrInternalServer)
+	u.Store.save()
 }
 
 func respondWithError(w http.ResponseWriter, status int, err string) {

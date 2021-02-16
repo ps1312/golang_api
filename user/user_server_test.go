@@ -19,18 +19,28 @@ func (e *EncrypterSpy) encrypt(password string) string {
 	return ""
 }
 
+type UserStoreSpy struct {
+	calls int
+}
+
+func (e *UserStoreSpy) save() {
+	e.calls++
+}
+
 func TestRegister(t *testing.T) {
 
-	makeSUT := func() (UsersServer, *EncrypterSpy) {
+	makeSUT := func() (UsersServer, *EncrypterSpy, *UserStoreSpy) {
 		sut := UsersServer{}
-		spy := &EncrypterSpy{}
-		sut.Encrypter = spy
+		encrypter := &EncrypterSpy{}
+		store := &UserStoreSpy{}
+		sut.Encrypter = encrypter
+		sut.Store = store
 
-		return sut, spy
+		return sut, encrypter, store
 	}
 
 	t.Run("Delivers 422 status code and missing param error correctly", func(t *testing.T) {
-		sut, _ := makeSUT()
+		sut, _, _ := makeSUT()
 
 		want := ErrMissingParam("Name, Email, Password, PasswordConfirm")
 		assertMissingParams(t, sut, nil, want.Error())
@@ -52,7 +62,7 @@ func TestRegister(t *testing.T) {
 	})
 
 	t.Run("Delivers 422 status code and ErrPasswordsDontMatch error on not equal passwords", func(t *testing.T) {
-		sut, _ := makeSUT()
+		sut, _, _ := makeSUT()
 		body := `{"name":"any-name", "email": "email@mail.com", "password": "password123", "passwordConfirm": "diffPassword"}`
 		request, _ := http.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
 		response := httptest.NewRecorder()
@@ -66,18 +76,18 @@ func TestRegister(t *testing.T) {
 	})
 
 	t.Run("Calls encrypter with correct password", func(t *testing.T) {
-		sut, spy := makeSUT()
+		sut, encrypter, _ := makeSUT()
 		body := `{"name":"any-name", "email": "email@mail.com", "password": "password123", "passwordConfirm": "password123"}`
 		request, _ := http.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
 		response := httptest.NewRecorder()
 		sut.ServeHTTP(response, request)
 
-		assertCalls(t, spy.calls, 1)
-		assertString(t, spy.encryptParam, "password123")
+		assertCalls(t, encrypter.calls, 1)
+		assertString(t, encrypter.encryptParam, "password123")
 	})
 
 	t.Run("Delivers internal server error on encryptor failure", func(t *testing.T) {
-		sut, _ := makeSUT()
+		sut, _, _ := makeSUT()
 		body := `{"name":"any-name", "email": "email@mail.com", "password": "password123", "passwordConfirm": "password123"}`
 		request, _ := http.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
 		response := httptest.NewRecorder()
@@ -85,6 +95,16 @@ func TestRegister(t *testing.T) {
 
 		assertStatusCode(t, response.Code, http.StatusInternalServerError)
 		assertError(t, response.Body.String(), ErrInternalServer)
+	})
+
+	t.Run("Calls store with correct user and encrypted password", func(t *testing.T) {
+		sut, _, store := makeSUT()
+		body := `{"name":"any-name", "email": "email@mail.com", "password": "password123", "passwordConfirm": "password123"}`
+		request, _ := http.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
+		response := httptest.NewRecorder()
+		sut.ServeHTTP(response, request)
+
+		assertCalls(t, store.calls, 1)
 	})
 }
 
