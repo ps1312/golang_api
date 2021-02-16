@@ -47,19 +47,8 @@ func (e *UserStoreSpy) respondWithError(err error) {
 }
 
 func TestRegister(t *testing.T) {
-
-	makeSUT := func() (UsersServer, *EncrypterSpy, *UserStoreSpy) {
-		sut := UsersServer{}
-		encrypter := &EncrypterSpy{}
-		store := &UserStoreSpy{}
-		sut.Encrypter = encrypter
-		sut.Store = store
-
-		return sut, encrypter, store
-	}
-
 	t.Run("Delivers 422 status code and missing param error correctly", func(t *testing.T) {
-		sut, _, _ := makeSUT()
+		sut, _, _ := makeSUT(t)
 
 		want := ErrMissingParam("Name, Email, Password, PasswordConfirm")
 		assertMissingParams(t, sut, nil, want.Error())
@@ -81,11 +70,10 @@ func TestRegister(t *testing.T) {
 	})
 
 	t.Run("Delivers 422 status code and ErrPasswordsDontMatch error on not equal passwords", func(t *testing.T) {
-		sut, _, _ := makeSUT()
 		body := `{"name":"any-name", "email": "email@mail.com", "password": "password123", "passwordConfirm": "diffPassword"}`
-		request, _ := http.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
-		response := httptest.NewRecorder()
-		sut.ServeHTTP(response, request)
+		sut, _, _ := makeSUT(t)
+
+		response := makeRequestForRegistration(t, sut, body)
 
 		got := response.Body.String()
 		want := ErrPasswordsDontMatch
@@ -95,38 +83,29 @@ func TestRegister(t *testing.T) {
 	})
 
 	t.Run("Calls encrypter with correct password", func(t *testing.T) {
-		sut, encrypter, _ := makeSUT()
-		body := `{"name":"any-name", "email": "email@mail.com", "password": "password123", "passwordConfirm": "password123"}`
-		request, _ := http.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
-		response := httptest.NewRecorder()
-		sut.ServeHTTP(response, request)
+		sut, encrypter, _ := makeSUT(t)
+		makeRequestForRegistration(t, sut, makeValidBody())
 
 		assertCalls(t, encrypter.calls, 1)
 		assertString(t, encrypter.encryptParam, "password123")
 	})
 
 	t.Run("Delivers internal server error on encryptor failure", func(t *testing.T) {
-		sut, encrypter, _ := makeSUT()
+		sut, encrypter, _ := makeSUT(t)
 		encrypter.respondWithError(errors.New("any-error"))
-		body := `{"name":"any-name", "email": "email@mail.com", "password": "password123", "passwordConfirm": "password123"}`
-		request, _ := http.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
-		response := httptest.NewRecorder()
-		sut.ServeHTTP(response, request)
+
+		response := makeRequestForRegistration(t, sut, makeValidBody())
 
 		assertStatusCode(t, response.Code, http.StatusInternalServerError)
 		assertError(t, response.Body.String(), ErrInternalServer)
 	})
 
 	t.Run("Calls store with correct user and encrypted password", func(t *testing.T) {
-		sut, encrypter, store := makeSUT()
-		body := `{"name":"any-name", "email": "email@mail.com", "password": "password123", "passwordConfirm": "password123"}`
-		request, _ := http.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
-		response := httptest.NewRecorder()
-
+		sut, encrypter, store := makeSUT(t)
 		const wantedEncryptedPassword = "hashed_password"
 		encrypter.respondWith(wantedEncryptedPassword)
 
-		sut.ServeHTTP(response, request)
+		makeRequestForRegistration(t, sut, makeValidBody())
 
 		got := store.saveUserParams
 		want := DatabaseModel{Name: "any-name", Email: "email@mail.com", password: wantedEncryptedPassword}
@@ -138,30 +117,21 @@ func TestRegister(t *testing.T) {
 	})
 
 	t.Run("Delivers 500 status code on store error", func(t *testing.T) {
-		sut, encrypter, store := makeSUT()
+		sut, encrypter, store := makeSUT(t)
 		store.respondWithError(errors.New("any-error"))
-		body := `{"name":"any-name", "email": "email@mail.com", "password": "password123", "passwordConfirm": "password123"}`
-		request, _ := http.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
-		response := httptest.NewRecorder()
+		encrypter.respondWith("hashed_password")
 
-		const wantedEncryptedPassword = "hashed_password"
-		encrypter.respondWith(wantedEncryptedPassword)
-
-		sut.ServeHTTP(response, request)
+		response := makeRequestForRegistration(t, sut, makeValidBody())
 
 		assertStatusCode(t, response.Code, http.StatusInternalServerError)
 		assertError(t, response.Body.String(), ErrInternalServer)
 	})
 
 	t.Run("Delivers 201 status code and created user without password", func(t *testing.T) {
-		sut, encrypter, _ := makeSUT()
-		body := `{"name":"any-name", "email": "email@mail.com", "password": "password123", "passwordConfirm": "password123"}`
-		request, _ := http.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
-		response := httptest.NewRecorder()
+		sut, encrypter, _ := makeSUT(t)
+		encrypter.respondWith("hashed_password")
 
-		const wantedEncryptedPassword = "hashed_password"
-		encrypter.respondWith(wantedEncryptedPassword)
-		sut.ServeHTTP(response, request)
+		response := makeRequestForRegistration(t, sut, makeValidBody())
 
 		got := response.Body.String()
 		want := `{"Name":"any-name","Email":"email@mail.com"}` + "\n"
@@ -171,6 +141,29 @@ func TestRegister(t *testing.T) {
 			t.Errorf("got %q, want %q", got, want)
 		}
 	})
+}
+
+func makeSUT(t *testing.T) (UsersServer, *EncrypterSpy, *UserStoreSpy) {
+	sut := UsersServer{}
+	encrypter := &EncrypterSpy{}
+	store := &UserStoreSpy{}
+	sut.Encrypter = encrypter
+	sut.Store = store
+
+	return sut, encrypter, store
+}
+
+func makeRequestForRegistration(t *testing.T, sut UsersServer, body string) httptest.ResponseRecorder {
+	request, _ := http.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
+	response := httptest.NewRecorder()
+	sut.ServeHTTP(response, request)
+
+	return *response
+}
+
+func makeValidBody() string {
+	return `{"name":"any-name", "email": "email@mail.com", "password": "password123", "passwordConfirm": "password123"}`
+
 }
 
 func assertMissingParams(t *testing.T, sut UsersServer, body io.Reader, want string) {
