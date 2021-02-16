@@ -39,13 +39,13 @@ type Store interface {
 	save(user DatabaseModel) error
 }
 
-// UsersServer struct
-type UsersServer struct {
+// Server struct
+type Server struct {
 	Encrypter Encrypter
 	Store     Store
 }
 
-func (u *UsersServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+func (u *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if req.Body == nil {
 		err := ErrMissingParam("Name, Email, Password, PasswordConfirm")
 		respondWithError(w, http.StatusUnprocessableEntity, err.Error())

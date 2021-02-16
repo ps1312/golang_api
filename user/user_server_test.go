@@ -141,8 +141,8 @@ func TestRegister(t *testing.T) {
 	})
 }
 
-func makeSUT(t *testing.T) (UsersServer, *EncrypterSpy, *UserStoreSpy) {
-	sut := UsersServer{}
+func makeSUT(t *testing.T) (Server, *EncrypterSpy, *UserStoreSpy) {
+	sut := Server{}
 	encrypter := &EncrypterSpy{}
 	store := &UserStoreSpy{}
 	sut.Encrypter = encrypter
@@ -151,7 +151,7 @@ func makeSUT(t *testing.T) (UsersServer, *EncrypterSpy, *UserStoreSpy) {
 	return sut, encrypter, store
 }
 
-func makeRequestForRegistration(t *testing.T, sut UsersServer, body string) httptest.ResponseRecorder {
+func makeRequestForRegistration(t *testing.T, sut Server, body string) httptest.ResponseRecorder {
 	request, _ := http.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
 	response := httptest.NewRecorder()
 	sut.ServeHTTP(response, request)
@@ -164,7 +164,7 @@ func makeValidBody() string {
 
 }
 
-func assertMissingParams(t *testing.T, sut UsersServer, body io.Reader, want string) {
+func assertMissingParams(t *testing.T, sut Server, body io.Reader, want string) {
 	t.Helper()
 
 	request, _ := http.NewRequest(http.MethodPost, "/register", body)
