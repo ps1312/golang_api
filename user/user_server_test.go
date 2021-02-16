@@ -161,10 +161,15 @@ func TestRegister(t *testing.T) {
 
 		const wantedEncryptedPassword = "hashed_password"
 		encrypter.respondWith(wantedEncryptedPassword)
-
 		sut.ServeHTTP(response, request)
 
-		assertStatusCode(t, response.Code, http.StatusOK)
+		got := response.Body.String()
+		want := `{"Name":"any-name","Email":"email@mail.com"}` + "\n"
+
+		assertStatusCode(t, response.Code, http.StatusCreated)
+		if got != want {
+			t.Errorf("got %q, want %q", got, want)
+		}
 	})
 }
 

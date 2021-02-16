@@ -78,12 +78,16 @@ func (u *UsersServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	storeErr := u.Store.save(DatabaseModel{Name: user.Name, Email: user.Email, password: hashed})
+	dbUser := DatabaseModel{Name: user.Name, Email: user.Email, password: hashed}
+	storeErr := u.Store.save(dbUser)
 
 	if storeErr != nil {
 		respondWithError(w, http.StatusInternalServerError, ErrInternalServer)
 		return
 	}
+
+	w.WriteHeader(http.StatusCreated)
+	json.NewEncoder(w).Encode(dbUser)
 }
 
 func respondWithError(w http.ResponseWriter, status int, err string) {
