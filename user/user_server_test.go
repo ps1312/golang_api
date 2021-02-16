@@ -1,6 +1,7 @@
 package user
 
 import (
+	"errors"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -12,26 +13,37 @@ type EncrypterSpy struct {
 	calls           int
 	encryptParam    string
 	defaultPassword string
+	defaultError    error
 }
 
-func (e *EncrypterSpy) encrypt(password string) string {
+func (e *EncrypterSpy) encrypt(password string) (string, error) {
 	e.calls++
 	e.encryptParam = password
-	return e.defaultPassword
+	return e.defaultPassword, e.defaultError
 }
 
 func (e *EncrypterSpy) respondWith(password string) {
 	e.defaultPassword = password
 }
 
+func (e *EncrypterSpy) respondWithError(err error) {
+	e.defaultError = err
+}
+
 type UserStoreSpy struct {
 	calls          int
 	saveUserParams DatabaseModel
+	defaultError   error
 }
 
-func (e *UserStoreSpy) save(user DatabaseModel) {
+func (e *UserStoreSpy) save(user DatabaseModel) error {
 	e.calls++
 	e.saveUserParams = user
+	return e.defaultError
+}
+
+func (e *UserStoreSpy) respondWithError(err error) {
+	e.defaultError = err
 }
 
 func TestRegister(t *testing.T) {
@@ -94,7 +106,8 @@ func TestRegister(t *testing.T) {
 	})
 
 	t.Run("Delivers internal server error on encryptor failure", func(t *testing.T) {
-		sut, _, _ := makeSUT()
+		sut, encrypter, _ := makeSUT()
+		encrypter.respondWithError(errors.New("any-error"))
 		body := `{"name":"any-name", "email": "email@mail.com", "password": "password123", "passwordConfirm": "password123"}`
 		request, _ := http.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
 		response := httptest.NewRecorder()
@@ -116,16 +129,17 @@ func TestRegister(t *testing.T) {
 		sut.ServeHTTP(response, request)
 
 		got := store.saveUserParams
-		want := DatabaseModel{Name: "any-name", Email: "email@mail.com", Password: wantedEncryptedPassword}
+		want := DatabaseModel{Name: "any-name", Email: "email@mail.com", password: wantedEncryptedPassword}
 
 		assertCalls(t, store.calls, 1)
 		assertString(t, got.Name, want.Name)
 		assertString(t, got.Email, want.Email)
-		assertString(t, got.Password, wantedEncryptedPassword)
+		assertString(t, got.password, wantedEncryptedPassword)
 	})
 
 	t.Run("Delivers 500 status code on store error", func(t *testing.T) {
-		sut, encrypter, _ := makeSUT()
+		sut, encrypter, store := makeSUT()
+		store.respondWithError(errors.New("any-error"))
 		body := `{"name":"any-name", "email": "email@mail.com", "password": "password123", "passwordConfirm": "password123"}`
 		request, _ := http.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
 		response := httptest.NewRecorder()
@@ -137,6 +151,20 @@ func TestRegister(t *testing.T) {
 
 		assertStatusCode(t, response.Code, http.StatusInternalServerError)
 		assertError(t, response.Body.String(), ErrInternalServer)
+	})
+
+	t.Run("Delivers 201 status code and created user without password", func(t *testing.T) {
+		sut, encrypter, _ := makeSUT()
+		body := `{"name":"any-name", "email": "email@mail.com", "password": "password123", "passwordConfirm": "password123"}`
+		request, _ := http.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
+		response := httptest.NewRecorder()
+
+		const wantedEncryptedPassword = "hashed_password"
+		encrypter.respondWith(wantedEncryptedPassword)
+
+		sut.ServeHTTP(response, request)
+
+		assertStatusCode(t, response.Code, http.StatusOK)
 	})
 }
 

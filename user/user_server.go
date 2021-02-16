@@ -23,7 +23,7 @@ func (e *ErrMissingParam) Error() string {
 type DatabaseModel struct {
 	Name     string
 	Email    string
-	Password string
+	password string
 }
 
 // RegisterModel model struct
@@ -36,12 +36,12 @@ type RegisterModel struct {
 
 // Encrypter password interface
 type Encrypter interface {
-	encrypt(password string) string
+	encrypt(password string) (string, error)
 }
 
 // Store user store interface
 type Store interface {
-	save(user DatabaseModel)
+	save(user DatabaseModel) error
 }
 
 // UsersServer struct
@@ -71,10 +71,19 @@ func (u *UsersServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	hashed := u.Encrypter.encrypt(user.Password)
+	hashed, hashErr := u.Encrypter.encrypt(user.Password)
 
-	respondWithError(w, http.StatusInternalServerError, ErrInternalServer)
-	u.Store.save(DatabaseModel{Name: user.Name, Email: user.Email, Password: hashed})
+	if hashErr != nil {
+		respondWithError(w, http.StatusInternalServerError, ErrInternalServer)
+		return
+	}
+
+	storeErr := u.Store.save(DatabaseModel{Name: user.Name, Email: user.Email, password: hashed})
+
+	if storeErr != nil {
+		respondWithError(w, http.StatusInternalServerError, ErrInternalServer)
+		return
+	}
 }
 
 func respondWithError(w http.ResponseWriter, status int, err string) {
