@@ -9,14 +9,19 @@ import (
 )
 
 type EncrypterSpy struct {
-	calls        int
-	encryptParam string
+	calls           int
+	encryptParam    string
+	defaultPassword string
 }
 
 func (e *EncrypterSpy) encrypt(password string) string {
 	e.calls++
 	e.encryptParam = password
-	return "hashed_password"
+	return e.defaultPassword
+}
+
+func (e *EncrypterSpy) respondWith(password string) {
+	e.defaultPassword = password
 }
 
 type UserStoreSpy struct {
@@ -100,20 +105,23 @@ func TestRegister(t *testing.T) {
 	})
 
 	t.Run("Calls store with correct user and encrypted password", func(t *testing.T) {
-		sut, _, store := makeSUT()
+		sut, encrypter, store := makeSUT()
 		body := `{"name":"any-name", "email": "email@mail.com", "password": "password123", "passwordConfirm": "password123"}`
 		request, _ := http.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
 		response := httptest.NewRecorder()
 
+		const wantedEncryptedPassword = "hashed_password"
+		encrypter.respondWith(wantedEncryptedPassword)
+
 		sut.ServeHTTP(response, request)
 
 		got := store.saveUserParams
-		want := DatabaseModel{Name: "any-name", Email: "email@mail.com", Password: "hashed_password"}
+		want := DatabaseModel{Name: "any-name", Email: "email@mail.com", Password: wantedEncryptedPassword}
 
 		assertCalls(t, store.calls, 1)
 		assertString(t, got.Name, want.Name)
 		assertString(t, got.Email, want.Email)
-		assertString(t, got.Password, "hashed_password")
+		assertString(t, got.Password, wantedEncryptedPassword)
 	})
 }
 
