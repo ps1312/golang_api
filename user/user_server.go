@@ -24,8 +24,15 @@ type User struct {
 	PasswordConfirm string
 }
 
+// Encrypter password interface
+type Encrypter interface {
+	encrypt(password string) string
+}
+
 // UsersServer struct
-type UsersServer struct{}
+type UsersServer struct {
+	Encrypter Encrypter
+}
 
 func (u *UsersServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if req.Body == nil {
@@ -46,6 +53,7 @@ func (u *UsersServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	u.Encrypter.encrypt(user.Password)
 	fmt.Fprint(w, ErrPasswordsDontMatch)
 }
 
