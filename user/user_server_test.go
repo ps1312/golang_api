@@ -16,15 +16,17 @@ type EncrypterSpy struct {
 func (e *EncrypterSpy) encrypt(password string) string {
 	e.calls++
 	e.encryptParam = password
-	return ""
+	return "hashed_password"
 }
 
 type UserStoreSpy struct {
-	calls int
+	calls          int
+	saveUserParams DatabaseModel
 }
 
-func (e *UserStoreSpy) save() {
+func (e *UserStoreSpy) save(user DatabaseModel) {
 	e.calls++
+	e.saveUserParams = user
 }
 
 func TestRegister(t *testing.T) {
@@ -102,9 +104,16 @@ func TestRegister(t *testing.T) {
 		body := `{"name":"any-name", "email": "email@mail.com", "password": "password123", "passwordConfirm": "password123"}`
 		request, _ := http.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
 		response := httptest.NewRecorder()
+
 		sut.ServeHTTP(response, request)
 
+		got := store.saveUserParams
+		want := DatabaseModel{Name: "any-name", Email: "email@mail.com", Password: "hashed_password"}
+
 		assertCalls(t, store.calls, 1)
+		assertString(t, got.Name, want.Name)
+		assertString(t, got.Email, want.Email)
+		assertString(t, got.Password, "hashed_password")
 	})
 }
 

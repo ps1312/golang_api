@@ -19,8 +19,15 @@ func (e *ErrMissingParam) Error() string {
 	return fmt.Sprintf("Missing parameter(s): %q", *e)
 }
 
-// User model struct
-type User struct {
+// DatabaseModel user struct
+type DatabaseModel struct {
+	Name     string
+	Email    string
+	Password string
+}
+
+// RegisterModel model struct
+type RegisterModel struct {
 	Name            string
 	Email           string
 	Password        string
@@ -34,7 +41,7 @@ type Encrypter interface {
 
 // Store user store interface
 type Store interface {
-	save()
+	save(user DatabaseModel)
 }
 
 // UsersServer struct
@@ -50,7 +57,7 @@ func (u *UsersServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	var user User
+	var user RegisterModel
 	json.NewDecoder(req.Body).Decode(&user)
 
 	missingParams := ErrMissingParam(checkMissingParams(user))
@@ -64,9 +71,10 @@ func (u *UsersServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	u.Encrypter.encrypt(user.Password)
+	hashed := u.Encrypter.encrypt(user.Password)
+
 	respondWithError(w, http.StatusInternalServerError, ErrInternalServer)
-	u.Store.save()
+	u.Store.save(DatabaseModel{Name: user.Name, Email: user.Email, Password: hashed})
 }
 
 func respondWithError(w http.ResponseWriter, status int, err string) {
@@ -74,7 +82,7 @@ func respondWithError(w http.ResponseWriter, status int, err string) {
 	fmt.Fprint(w, err)
 }
 
-func checkMissingParams(user User) (missingParams string) {
+func checkMissingParams(user RegisterModel) (missingParams string) {
 	if user.Name == "" {
 		missingParams += "Name, "
 	}
