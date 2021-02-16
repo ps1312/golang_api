@@ -69,7 +69,7 @@ func TestRegister(t *testing.T) {
 		}
 	})
 
-	t.Run("Delivers 422 status code and ErrPasswordsDontMatch error on not equal passwords", func(t *testing.T) {
+	t.Run("Delivers 422 status code and ErrPasswordsDontMatch error on non equal passwords", func(t *testing.T) {
 		body := `{"name":"any-name", "email": "email@mail.com", "password": "password123", "passwordConfirm": "diffPassword"}`
 		sut, _, _ := makeSUT(t)
 
