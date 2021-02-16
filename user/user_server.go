@@ -36,25 +36,27 @@ type UsersServer struct {
 
 func (u *UsersServer) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if req.Body == nil {
-		w.WriteHeader(http.StatusUnprocessableEntity)
 		err := ErrMissingParam("Name, Email, Password, PasswordConfirm")
-		fmt.Fprint(w, err.Error())
+		respondWithError(w, http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 
 	var user User
 	json.NewDecoder(req.Body).Decode(&user)
 
-	w.WriteHeader(http.StatusUnprocessableEntity)
-	missing := ErrMissingParam(checkMissingParams(user))
-
-	if missing != "" {
-		fmt.Fprint(w, missing.Error())
+	missingParams := ErrMissingParam(checkMissingParams(user))
+	if missingParams != "" {
+		respondWithError(w, http.StatusUnprocessableEntity, missingParams.Error())
 		return
 	}
 
 	u.Encrypter.encrypt(user.Password)
 	fmt.Fprint(w, ErrPasswordsDontMatch)
+}
+
+func respondWithError(w http.ResponseWriter, status int, err string) {
+	w.WriteHeader(status)
+	fmt.Fprint(w, err)
 }
 
 func checkMissingParams(user User) (missingParams string) {
