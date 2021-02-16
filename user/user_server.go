@@ -1,4 +1,4 @@
-package user
+package users
 
 import (
 	"encoding/json"
@@ -32,11 +32,6 @@ type RegisterModel struct {
 	Email           string
 	Password        string
 	PasswordConfirm string
-}
-
-// Encrypter password interface
-type Encrypter interface {
-	encrypt(password string) (string, error)
 }
 
 // Store user store interface
