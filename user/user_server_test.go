@@ -20,14 +20,20 @@ func (e *EncrypterSpy) encrypt(password string) string {
 }
 
 func TestRegister(t *testing.T) {
-	server := UsersServer{}
+
+	makeSUT := func() (UsersServer, *EncrypterSpy) {
+		sut := UsersServer{}
+		spy := &EncrypterSpy{}
+		sut.Encrypter = spy
+
+		return sut, spy
+	}
 
 	t.Run("Delivers 422 status code and missing param error correctly", func(t *testing.T) {
-		spy := &EncrypterSpy{}
-		server.Encrypter = spy
+		sut, _ := makeSUT()
 
 		want := ErrMissingParam("Name, Email, Password, PasswordConfirm")
-		assertMissingParams(t, server, nil, want.Error())
+		assertMissingParams(t, sut, nil, want.Error())
 
 		testingTable := []struct {
 			body string
@@ -41,17 +47,16 @@ func TestRegister(t *testing.T) {
 		}
 
 		for _, testCase := range testingTable {
-			assertMissingParams(t, server, strings.NewReader(testCase.body), testCase.want.Error())
+			assertMissingParams(t, sut, strings.NewReader(testCase.body), testCase.want.Error())
 		}
 	})
 
 	t.Run("Delivers 422 status code and ErrPasswordsDontMatch error on not equal passwords", func(t *testing.T) {
-		spy := &EncrypterSpy{}
-		server.Encrypter = spy
+		sut, _ := makeSUT()
 		body := `{"name":"any-name", "email": "email@mail.com", "password": "password123", "passwordConfirm": "diffPassword"}`
 		request, _ := http.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
 		response := httptest.NewRecorder()
-		server.ServeHTTP(response, request)
+		sut.ServeHTTP(response, request)
 
 		got := response.Body.String()
 		want := ErrPasswordsDontMatch
@@ -61,35 +66,43 @@ func TestRegister(t *testing.T) {
 	})
 
 	t.Run("Calls encrypter with correct password", func(t *testing.T) {
-		spy := &EncrypterSpy{}
-		server.Encrypter = spy
+		sut, spy := makeSUT()
 		body := `{"name":"any-name", "email": "email@mail.com", "password": "password123", "passwordConfirm": "password123"}`
 		request, _ := http.NewRequest(http.MethodPost, "/users", strings.NewReader(body))
 		response := httptest.NewRecorder()
-		server.ServeHTTP(response, request)
+		sut.ServeHTTP(response, request)
 
-		if spy.calls != 1 {
-			t.Errorf("got %d, want 1", spy.calls)
-		}
-
-		if spy.encryptParam != "password123" {
-			t.Errorf("got %q, want %q", spy.encryptParam, "password123")
-		}
+		assertCalls(t, spy.calls, 1)
+		assertString(t, spy.encryptParam, "password123")
 	})
 }
 
-func assertMissingParams(t *testing.T, server UsersServer, body io.Reader, want string) {
+func assertMissingParams(t *testing.T, sut UsersServer, body io.Reader, want string) {
 	t.Helper()
 
 	request, _ := http.NewRequest(http.MethodPost, "/register", body)
 	response := httptest.NewRecorder()
 
-	server.ServeHTTP(response, request)
+	sut.ServeHTTP(response, request)
 
 	got := response.Body.String()
 
 	assertStatusCode(t, response.Code, http.StatusUnprocessableEntity)
 	assertError(t, got, want)
+}
+
+func assertCalls(t *testing.T, got int, want int) {
+	t.Helper()
+	if got != want {
+		t.Errorf("got %d, want %d", got, want)
+	}
+}
+
+func assertString(t *testing.T, got string, want string) {
+	t.Helper()
+	if got != want {
+		t.Errorf("got %q, want %q", got, want)
+	}
 }
 
 func assertError(t *testing.T, got string, want string) {
