@@ -1,6 +1,7 @@
 package user
 
 import (
+	"api/encryption"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -42,7 +43,7 @@ type Store interface {
 
 // Server struct
 type Server struct {
-	Encrypter Encrypter
+	Encrypter encryption.Encrypter
 	Store     Store
 }
 
@@ -54,7 +55,7 @@ func (u *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 }
 
-func handlePostUser(w http.ResponseWriter, req *http.Request, store Store, encryptor Encrypter) {
+func handlePostUser(w http.ResponseWriter, req *http.Request, store Store, encryptor encryption.Encrypter) {
 	if req.Body == nil {
 		err := ErrMissingParam("Name, Email, Password, PasswordConfirm")
 		respondWithError(w, http.StatusUnprocessableEntity, err.Error())
@@ -75,7 +76,7 @@ func handlePostUser(w http.ResponseWriter, req *http.Request, store Store, encry
 		return
 	}
 
-	hashed, hashErr := encryptor.encrypt(user.Password, 10)
+	hashed, hashErr := encryptor.Encrypt(user.Password, 10)
 
 	if hashErr != nil {
 		respondWithError(w, http.StatusInternalServerError, ErrInternalServer)

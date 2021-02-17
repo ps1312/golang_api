@@ -1,4 +1,4 @@
-package user
+package encryption
 
 import (
 	"testing"
@@ -7,7 +7,7 @@ import (
 func TestBCryptEncrypter(t *testing.T) {
 	t.Run("Deliver error on bcrypt failure", func(t *testing.T) {
 		sut := BCryptEncrypter{}
-		_, err := sut.encrypt("test", 99)
+		_, err := sut.Encrypt("test", 99)
 
 		if err == nil {
 			t.Errorf("got nil, want failure")
@@ -16,7 +16,7 @@ func TestBCryptEncrypter(t *testing.T) {
 
 	t.Run("Delivers crypted password", func(t *testing.T) {
 		sut := BCryptEncrypter{}
-		cryptedPassword, err := sut.encrypt("test", 10)
+		cryptedPassword, err := sut.Encrypt("test", 10)
 
 		if err != nil {
 			t.Errorf("got failure, want nil")
