@@ -46,6 +46,11 @@ type Server struct {
 }
 
 func (u *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
+	if req.Method == http.MethodGet {
+		handleGetUsers(w)
+		return
+	}
+
 	if req.Body == nil {
 		err := ErrMissingParam("Name, Email, Password, PasswordConfirm")
 		respondWithError(w, http.StatusUnprocessableEntity, err.Error())
@@ -83,6 +88,11 @@ func (u *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 
 	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(dbUser)
+}
+
+func handleGetUsers(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusInternalServerError)
+	fmt.Fprintf(w, ErrInternalServer)
 }
 
 func respondWithError(w http.ResponseWriter, status int, err string) {
