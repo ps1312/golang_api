@@ -56,9 +56,17 @@ func (e *UserStoreSpy) respondWithError(err error) {
 	e.defaultError = err
 }
 
+type SignerSpy struct {
+	defaultError error
+}
+
+func (s *SignerSpy) Sign() error {
+	return s.defaultError
+}
+
 func TestRegister(t *testing.T) {
 	t.Run("Delivers 422 status code and missing param error correctly", func(t *testing.T) {
-		sut, _, _ := makeSUT(t)
+		sut, _, _, _ := makeSUT(t)
 
 		want := ErrMissingParam("Name, Email, Password, PasswordConfirm")
 		assertMissingParams(t, sut, nil, want.Error())
@@ -81,7 +89,7 @@ func TestRegister(t *testing.T) {
 
 	t.Run("Delivers 422 status code and ErrPasswordsDontMatch error on not equal passwords", func(t *testing.T) {
 		body := `{"name":"any-name", "email": "email@mail.com", "password": "password123", "passwordConfirm": "diffPassword"}`
-		sut, _, _ := makeSUT(t)
+		sut, _, _, _ := makeSUT(t)
 
 		response := makeRequestForRegistration(t, sut, body)
 
@@ -93,7 +101,7 @@ func TestRegister(t *testing.T) {
 	})
 
 	t.Run("Calls encrypter with correct password", func(t *testing.T) {
-		sut, encrypter, _ := makeSUT(t)
+		sut, encrypter, _, _ := makeSUT(t)
 		makeRequestForRegistration(t, sut, makeValidBody())
 
 		assertCalls(t, encrypter.calls, 1)
@@ -101,7 +109,7 @@ func TestRegister(t *testing.T) {
 	})
 
 	t.Run("Delivers internal server error on encryptor failure", func(t *testing.T) {
-		sut, encrypter, _ := makeSUT(t)
+		sut, encrypter, _, _ := makeSUT(t)
 		encrypter.respondWithError(errors.New("any-error"))
 
 		response := makeRequestForRegistration(t, sut, makeValidBody())
@@ -111,7 +119,7 @@ func TestRegister(t *testing.T) {
 	})
 
 	t.Run("Calls store with correct user and encrypted password", func(t *testing.T) {
-		sut, encrypter, store := makeSUT(t)
+		sut, encrypter, store, _ := makeSUT(t)
 		const wantedEncryptedPassword = "hashed_password"
 		encrypter.respondWith(wantedEncryptedPassword)
 
@@ -127,7 +135,7 @@ func TestRegister(t *testing.T) {
 	})
 
 	t.Run("Delivers 500 status code on store error", func(t *testing.T) {
-		sut, encrypter, store := makeSUT(t)
+		sut, encrypter, store, _ := makeSUT(t)
 		store.respondWithError(errors.New("any-error"))
 		encrypter.respondWith("hashed_password")
 
@@ -138,7 +146,7 @@ func TestRegister(t *testing.T) {
 	})
 
 	t.Run("Delivers 201 status code and created user without password", func(t *testing.T) {
-		sut, encrypter, _ := makeSUT(t)
+		sut, encrypter, _, _ := makeSUT(t)
 		encrypter.respondWith("hashed_password")
 
 		response := makeRequestForRegistration(t, sut, makeValidBody())
@@ -149,11 +157,21 @@ func TestRegister(t *testing.T) {
 		assertStatusCode(t, response.Code, http.StatusCreated)
 		assertString(t, got, want)
 	})
+
+	t.Run("Delivers error on token creation failure", func(t *testing.T) {
+		sut, _, _, signer := makeSUT(t)
+		signer.defaultError = errors.New("any-error")
+
+		response := makeRequestForRegistration(t, sut, makeValidBody())
+
+		assertStatusCode(t, response.Code, http.StatusInternalServerError)
+		assertString(t, response.Body.String(), ErrInternalServer)
+	})
 }
 
 func TestGetUsers(t *testing.T) {
 	t.Run("Delivers error on storage failure", func(t *testing.T) {
-		sut, _, store := makeSUT(t)
+		sut, _, store, _ := makeSUT(t)
 		store.respondWithError(errors.New(ErrInternalServer))
 		request, _ := http.NewRequest(http.MethodGet, "/users", nil)
 		response := httptest.NewRecorder()
@@ -165,7 +183,7 @@ func TestGetUsers(t *testing.T) {
 	})
 
 	t.Run("Delivers users in storage successfully", func(t *testing.T) {
-		sut, _, store := makeSUT(t)
+		sut, _, store, _ := makeSUT(t)
 		want := []DatabaseModel{{Name: "any-Name", Email: "mail@mail.com", password: "any-password"}}
 		store.respondGetAllWith(want)
 		store.Users = want
@@ -183,14 +201,17 @@ func TestGetUsers(t *testing.T) {
 	})
 }
 
-func makeSUT(t *testing.T) (Server, *EncrypterSpy, *UserStoreSpy) {
+func makeSUT(t *testing.T) (Server, *EncrypterSpy, *UserStoreSpy, *SignerSpy) {
 	sut := Server{}
 	encrypter := &EncrypterSpy{}
 	store := &UserStoreSpy{}
+	signer := &SignerSpy{}
+	signer.defaultError = nil
 	sut.Encrypter = encrypter
 	sut.Store = store
+	sut.Signer = signer
 
-	return sut, encrypter, store
+	return sut, encrypter, store, signer
 }
 
 func makeRequestForRegistration(t *testing.T, sut Server, body string) httptest.ResponseRecorder {

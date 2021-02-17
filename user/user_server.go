@@ -2,6 +2,7 @@ package user
 
 import (
 	"api/encryption"
+	"api/signer"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -45,17 +46,18 @@ type Store interface {
 type Server struct {
 	Encrypter encryption.Encrypter
 	Store     Store
+	Signer    signer.Signer
 }
 
 func (u *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if req.Method == http.MethodGet {
 		handleGetUsers(w, u.Store)
 	} else {
-		handlePostUser(w, req, u.Store, u.Encrypter)
+		handlePostUser(w, req, u.Store, u.Encrypter, u.Signer)
 	}
 }
 
-func handlePostUser(w http.ResponseWriter, req *http.Request, store Store, encryptor encryption.Encrypter) {
+func handlePostUser(w http.ResponseWriter, req *http.Request, store Store, encryptor encryption.Encrypter, signer signer.Signer) {
 	if req.Body == nil {
 		err := ErrMissingParam("Name, Email, Password, PasswordConfirm")
 		respondWithError(w, http.StatusUnprocessableEntity, err.Error())
@@ -87,6 +89,13 @@ func handlePostUser(w http.ResponseWriter, req *http.Request, store Store, encry
 	storeErr := store.save(dbUser)
 
 	if storeErr != nil {
+		respondWithError(w, http.StatusInternalServerError, ErrInternalServer)
+		return
+	}
+
+	signerErr := signer.Sign()
+
+	if signerErr != nil {
 		respondWithError(w, http.StatusInternalServerError, ErrInternalServer)
 		return
 	}
