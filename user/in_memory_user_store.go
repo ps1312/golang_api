@@ -9,3 +9,7 @@ func (i *InMemoryUsersStore) save(user DatabaseModel) error {
 	i.Users = append(i.Users, user)
 	return nil
 }
+
+func (i *InMemoryUsersStore) getAll() ([]DatabaseModel, error) {
+	return i.Users, nil
+}
