@@ -93,15 +93,20 @@ func handlePostUser(w http.ResponseWriter, req *http.Request, store Store, encry
 		return
 	}
 
-	signerErr := signer.Sign()
+	token, signerErr := signer.Sign()
 
 	if signerErr != nil {
 		respondWithError(w, http.StatusInternalServerError, ErrInternalServer)
 		return
 	}
 
+	signedUser := struct {
+		User  DatabaseModel
+		Token string
+	}{dbUser, token}
+
 	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(dbUser)
+	json.NewEncoder(w).Encode(signedUser)
 }
 
 func handleGetUsers(w http.ResponseWriter, store Store) {

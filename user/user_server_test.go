@@ -58,10 +58,15 @@ func (e *UserStoreSpy) respondWithError(err error) {
 
 type SignerSpy struct {
 	defaultError error
+	defaultToken string
 }
 
-func (s *SignerSpy) Sign() error {
-	return s.defaultError
+func (s *SignerSpy) respondWith(token string) {
+	s.defaultToken = token
+}
+
+func (s *SignerSpy) Sign() (string, error) {
+	return s.defaultToken, s.defaultError
 }
 
 func TestRegister(t *testing.T) {
@@ -145,19 +150,6 @@ func TestRegister(t *testing.T) {
 		assertError(t, response.Body.String(), ErrInternalServer)
 	})
 
-	t.Run("Delivers 201 status code and created user without password", func(t *testing.T) {
-		sut, encrypter, _, _ := makeSUT(t)
-		encrypter.respondWith("hashed_password")
-
-		response := makeRequestForRegistration(t, sut, makeValidBody())
-
-		got := response.Body.String()
-		want := `{"Name":"any-name","Email":"email@mail.com"}` + "\n"
-
-		assertStatusCode(t, response.Code, http.StatusCreated)
-		assertString(t, got, want)
-	})
-
 	t.Run("Delivers error on token creation failure", func(t *testing.T) {
 		sut, _, _, signer := makeSUT(t)
 		signer.defaultError = errors.New("any-error")
@@ -166,6 +158,20 @@ func TestRegister(t *testing.T) {
 
 		assertStatusCode(t, response.Code, http.StatusInternalServerError)
 		assertString(t, response.Body.String(), ErrInternalServer)
+	})
+
+	t.Run("Delivers 201 status code and created user without password", func(t *testing.T) {
+		sut, encrypter, _, signer := makeSUT(t)
+		encrypter.respondWith("hashed_password")
+		signer.respondWith("signed_token")
+
+		response := makeRequestForRegistration(t, sut, makeValidBody())
+
+		got := response.Body.String()
+		want := `{"User":{"Name":"any-name","Email":"email@mail.com"},"Token":"signed_token"}` + "\n"
+
+		assertStatusCode(t, response.Code, http.StatusCreated)
+		assertString(t, got, want)
 	})
 }
 
