@@ -1,6 +1,7 @@
 package user
 
 import (
+	"encoding/json"
 	"errors"
 	"io"
 	"net/http"
@@ -34,12 +35,21 @@ type UserStoreSpy struct {
 	calls          int
 	saveUserParams DatabaseModel
 	defaultError   error
+	Users          []DatabaseModel
 }
 
 func (e *UserStoreSpy) save(user DatabaseModel) error {
 	e.calls++
 	e.saveUserParams = user
 	return e.defaultError
+}
+
+func (e *UserStoreSpy) getAll() ([]DatabaseModel, error) {
+	return e.Users, e.defaultError
+}
+
+func (e *UserStoreSpy) respondGetAllWith(users []DatabaseModel) {
+	e.Users = users
 }
 
 func (e *UserStoreSpy) respondWithError(err error) {
@@ -143,14 +153,33 @@ func TestRegister(t *testing.T) {
 
 func TestGetUsers(t *testing.T) {
 	t.Run("Delivers error on storage failure", func(t *testing.T) {
-		sut, _, _ := makeSUT(t)
-		request, _ := http.NewRequest(http.MethodGet, "users", nil)
+		sut, _, store := makeSUT(t)
+		store.respondWithError(errors.New(ErrInternalServer))
+		request, _ := http.NewRequest(http.MethodGet, "/users", nil)
 		response := httptest.NewRecorder()
 
 		sut.ServeHTTP(response, request)
 
 		assertStatusCode(t, response.Code, http.StatusInternalServerError)
 		assertError(t, response.Body.String(), ErrInternalServer)
+	})
+
+	t.Run("Delivers users in storage successfully", func(t *testing.T) {
+		sut, _, store := makeSUT(t)
+		want := []DatabaseModel{{Name: "any-Name", Email: "mail@mail.com", password: "any-password"}}
+		store.respondGetAllWith(want)
+		store.Users = want
+
+		request, _ := http.NewRequest(http.MethodGet, "/users", nil)
+		response := httptest.NewRecorder()
+
+		sut.ServeHTTP(response, request)
+
+		var got []DatabaseModel
+		json.NewDecoder(response.Body).Decode(&got)
+		assertStatusCode(t, response.Code, http.StatusOK)
+		assertString(t, got[0].Name, want[0].Name)
+		assertString(t, got[0].Email, want[0].Email)
 	})
 }
 

@@ -37,6 +37,7 @@ type RegisterModel struct {
 // Store user store interface
 type Store interface {
 	save(user DatabaseModel) error
+	getAll() ([]DatabaseModel, error)
 }
 
 // Server struct
@@ -47,7 +48,7 @@ type Server struct {
 
 func (u *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if req.Method == http.MethodGet {
-		handleGetUsers(w)
+		handleGetUsers(w, u.Store)
 	} else {
 		handlePostUser(w, req, u.Store, u.Encrypter)
 	}
@@ -93,9 +94,17 @@ func handlePostUser(w http.ResponseWriter, req *http.Request, store Store, encry
 	json.NewEncoder(w).Encode(dbUser)
 }
 
-func handleGetUsers(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusInternalServerError)
-	fmt.Fprintf(w, ErrInternalServer)
+func handleGetUsers(w http.ResponseWriter, store Store) {
+	users, err := store.getAll()
+
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		fmt.Fprintf(w, ErrInternalServer)
+	} else {
+		w.WriteHeader(http.StatusOK)
+		json.NewEncoder(w).Encode(users)
+	}
+
 }
 
 func respondWithError(w http.ResponseWriter, status int, err string) {
