@@ -142,14 +142,16 @@ func TestRegister(t *testing.T) {
 }
 
 func TestGetUsers(t *testing.T) {
-	sut, _, _ := makeSUT(t)
-	request, _ := http.NewRequest(http.MethodGet, "users", nil)
-	response := httptest.NewRecorder()
+	t.Run("Delivers error on storage failure", func(t *testing.T) {
+		sut, _, _ := makeSUT(t)
+		request, _ := http.NewRequest(http.MethodGet, "users", nil)
+		response := httptest.NewRecorder()
 
-	sut.ServeHTTP(response, request)
+		sut.ServeHTTP(response, request)
 
-	assertStatusCode(t, response.Code, http.StatusInternalServerError)
-	assertError(t, response.Body.String(), ErrInternalServer)
+		assertStatusCode(t, response.Code, http.StatusInternalServerError)
+		assertError(t, response.Body.String(), ErrInternalServer)
+	})
 }
 
 func makeSUT(t *testing.T) (Server, *EncrypterSpy, *UserStoreSpy) {
