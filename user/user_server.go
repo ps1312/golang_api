@@ -48,9 +48,12 @@ type Server struct {
 func (u *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	if req.Method == http.MethodGet {
 		handleGetUsers(w)
-		return
+	} else {
+		handlePostUser(w, req, u.Store, u.Encrypter)
 	}
+}
 
+func handlePostUser(w http.ResponseWriter, req *http.Request, store Store, encryptor Encrypter) {
 	if req.Body == nil {
 		err := ErrMissingParam("Name, Email, Password, PasswordConfirm")
 		respondWithError(w, http.StatusUnprocessableEntity, err.Error())
@@ -71,7 +74,7 @@ func (u *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	hashed, hashErr := u.Encrypter.encrypt(user.Password, 10)
+	hashed, hashErr := encryptor.encrypt(user.Password, 10)
 
 	if hashErr != nil {
 		respondWithError(w, http.StatusInternalServerError, ErrInternalServer)
@@ -79,7 +82,7 @@ func (u *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	}
 
 	dbUser := DatabaseModel{Name: user.Name, Email: user.Email, password: hashed}
-	storeErr := u.Store.save(dbUser)
+	storeErr := store.save(dbUser)
 
 	if storeErr != nil {
 		respondWithError(w, http.StatusInternalServerError, ErrInternalServer)
