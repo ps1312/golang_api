@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"reflect"
 	"time"
 )
 
@@ -68,7 +69,9 @@ func handlePostUser(w http.ResponseWriter, req *http.Request, store Store, encry
 	var user RegisterModel
 	json.NewDecoder(req.Body).Decode(&user)
 
-	missingParams := ErrMissingParam(checkMissingParams(user))
+	requiredFields := []string{"Name", "Email", "Password", "PasswordConfirm"}
+	missingParams := ErrMissingParam(checkMissingParams(user, requiredFields))
+
 	if missingParams != "" {
 		respondWithError(w, http.StatusUnprocessableEntity, missingParams.Error())
 		return
@@ -129,25 +132,20 @@ func respondWithError(w http.ResponseWriter, status int, err string) {
 	fmt.Fprint(w, err)
 }
 
-func checkMissingParams(user RegisterModel) (missingParams string) {
-	if user.Name == "" {
-		missingParams += "Name, "
+func checkMissingParams(user RegisterModel, params []string) (missingParams string) {
+	for _, param := range params {
+		if getFieldFromStruct(user, param) == "" {
+			missingParams += param + ", "
+		}
 	}
-
-	if user.Email == "" {
-		missingParams += "Email, "
-	}
-
-	if user.Password == "" {
-		missingParams += "Password, "
-	}
-
-	if user.PasswordConfirm == "" {
-		missingParams += "PasswordConfirm, "
-	}
-
 	if missingParams != "" {
 		missingParams = missingParams[:len(missingParams)-2]
 	}
 	return
+}
+
+func getFieldFromStruct(subject interface{}, field string) string {
+	iter := reflect.ValueOf(subject)
+	str := iter.FieldByName(field).String()
+	return str
 }
