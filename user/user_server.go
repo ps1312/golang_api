@@ -2,11 +2,11 @@ package user
 
 import (
 	"api/encryption"
+	"api/helpers"
 	"api/signer"
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"reflect"
 	"time"
 )
 
@@ -62,7 +62,7 @@ func (u *Server) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 func handlePostUser(w http.ResponseWriter, req *http.Request, store Store, encryptor encryption.Encrypter, signer signer.Signer) {
 	if req.Body == nil {
 		err := ErrMissingParam("Name, Email, Password, PasswordConfirm")
-		respondWithError(w, http.StatusUnprocessableEntity, err.Error())
+		helpers.RespondWithError(w, http.StatusUnprocessableEntity, err.Error())
 		return
 	}
 
@@ -73,19 +73,19 @@ func handlePostUser(w http.ResponseWriter, req *http.Request, store Store, encry
 	missingParams := ErrMissingParam(checkMissingParams(user, requiredFields))
 
 	if missingParams != "" {
-		respondWithError(w, http.StatusUnprocessableEntity, missingParams.Error())
+		helpers.RespondWithError(w, http.StatusUnprocessableEntity, missingParams.Error())
 		return
 	}
 
 	if user.Password != user.PasswordConfirm {
-		respondWithError(w, http.StatusUnprocessableEntity, ErrPasswordsDontMatch)
+		helpers.RespondWithError(w, http.StatusUnprocessableEntity, ErrPasswordsDontMatch)
 		return
 	}
 
 	hashed, hashErr := encryptor.Encrypt(user.Password, 10)
 
 	if hashErr != nil {
-		respondWithError(w, http.StatusInternalServerError, ErrInternalServer)
+		helpers.RespondWithError(w, http.StatusInternalServerError, ErrInternalServer)
 		return
 	}
 
@@ -93,7 +93,7 @@ func handlePostUser(w http.ResponseWriter, req *http.Request, store Store, encry
 	storeErr := store.save(dbUser)
 
 	if storeErr != nil {
-		respondWithError(w, http.StatusInternalServerError, ErrInternalServer)
+		helpers.RespondWithError(w, http.StatusInternalServerError, ErrInternalServer)
 		return
 	}
 
@@ -101,7 +101,7 @@ func handlePostUser(w http.ResponseWriter, req *http.Request, store Store, encry
 	token, signerErr := signer.Sign(user.Name, user.Email, exp)
 
 	if signerErr != nil {
-		respondWithError(w, http.StatusInternalServerError, ErrInternalServer)
+		helpers.RespondWithError(w, http.StatusInternalServerError, ErrInternalServer)
 		return
 	}
 
@@ -110,8 +110,7 @@ func handlePostUser(w http.ResponseWriter, req *http.Request, store Store, encry
 		Token string
 	}{dbUser, token}
 
-	w.WriteHeader(http.StatusCreated)
-	json.NewEncoder(w).Encode(signedUser)
+	helpers.RespondWithSuccess(w, http.StatusCreated, signedUser)
 }
 
 func handleGetUsers(w http.ResponseWriter, store Store) {
@@ -127,14 +126,9 @@ func handleGetUsers(w http.ResponseWriter, store Store) {
 
 }
 
-func respondWithError(w http.ResponseWriter, status int, err string) {
-	w.WriteHeader(status)
-	fmt.Fprint(w, err)
-}
-
 func checkMissingParams(user RegisterModel, params []string) (missingParams string) {
 	for _, param := range params {
-		if getFieldFromStruct(user, param) == "" {
+		if helpers.GetFieldFromStruct(user, param) == "" {
 			missingParams += param + ", "
 		}
 	}
@@ -142,10 +136,4 @@ func checkMissingParams(user RegisterModel, params []string) (missingParams stri
 		missingParams = missingParams[:len(missingParams)-2]
 	}
 	return
-}
-
-func getFieldFromStruct(subject interface{}, field string) string {
-	iter := reflect.ValueOf(subject)
-	str := iter.FieldByName(field).String()
-	return str
 }
