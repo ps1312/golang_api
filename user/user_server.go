@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 // ErrInternalServer error const
@@ -93,7 +94,8 @@ func handlePostUser(w http.ResponseWriter, req *http.Request, store Store, encry
 		return
 	}
 
-	token, signerErr := signer.Sign()
+	exp := time.Now().Add(time.Minute * 15).Unix()
+	token, signerErr := signer.Sign(user.Name, user.Email, exp)
 
 	if signerErr != nil {
 		respondWithError(w, http.StatusInternalServerError, ErrInternalServer)

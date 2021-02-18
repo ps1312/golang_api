@@ -65,7 +65,7 @@ func (s *SignerSpy) respondWith(token string) {
 	s.defaultToken = token
 }
 
-func (s *SignerSpy) Sign() (string, error) {
+func (s *SignerSpy) Sign(name string, email string, expiredAt int64) (string, error) {
 	return s.defaultToken, s.defaultError
 }
 
