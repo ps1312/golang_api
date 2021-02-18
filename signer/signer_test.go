@@ -14,12 +14,14 @@ func (js *JWTSigner) Sign() (string, error) {
 }
 
 func TestJWTSigner(t *testing.T) {
-	sut := JWTSigner{}
+	t.Run("Delivers error on sign failure", func(t *testing.T) {
+		sut := JWTSigner{}
 
-	_, got := sut.Sign()
-	want := ErrJWTSigner
+		_, got := sut.Sign()
+		want := ErrJWTSigner
 
-	if got.Error() != want {
-		t.Errorf("got %q, want %q", got, want)
-	}
+		if got.Error() != want {
+			t.Errorf("got %q, want %q", got, want)
+		}
+	})
 }
